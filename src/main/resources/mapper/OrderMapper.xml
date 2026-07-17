@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ordermanager.mapper.OrderMapper">
+
+    <resultMap id="BaseMap" type="Order">
+        <id column="id" property="id"/>
+        <result column="code" property="code"/>
+        <result column="name" property="name"/>
+        <result column="type" property="type"/>
+        <result column="partner_id" property="partnerId"/>
+        <result column="amount" property="amount"/>
+        <result column="status" property="status"/>
+        <result column="order_time" property="orderTime"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="partner_name" property="partnerName"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        o.id, o.code, o.name, o.type, o.partner_id, o.amount, o.status, o.order_time,
+        o.remark, o.create_time, o.update_time, p.name AS partner_name
+    </sql>
+
+    <sql id="FromClause">
+        FROM tb_order o LEFT JOIN tb_partner p ON o.partner_id = p.id
+    </sql>
+
+    <sql id="WhereClause">
+        <where>
+            <if test="code != null and code != ''">AND o.code LIKE CONCAT('%', #{code}, '%')</if>
+            <if test="type != null and type != ''">AND o.type = #{type}</if>
+            <if test="partnerId != null">AND o.partner_id = #{partnerId}</if>
+            <if test="status != null and status != ''">AND o.status = #{status}</if>
+        </where>
+    </sql>
+
+    <select id="selectList" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/>
+        <include refid="FromClause"/>
+        <include refid="WhereClause"/>
+        ORDER BY o.id DESC LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectCount" resultType="long">
+        SELECT COUNT(*)
+        <include refid="FromClause"/>
+        <include refid="WhereClause"/>
+    </select>
+
+    <select id="selectById" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/>
+        <include refid="FromClause"/>
+        WHERE o.id = #{id}
+    </select>
+
+    <select id="selectByCode" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/>
+        <include refid="FromClause"/>
+        WHERE o.code = #{code}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_order (code, name, type, partner_id, amount, status, order_time, remark)
+        VALUES (#{code}, #{name}, #{type}, #{partnerId}, #{amount}, #{status}, #{orderTime}, #{remark})
+    </insert>
+
+    <update id="update">
+        UPDATE tb_order
+        SET name = #{name}, type = #{type}, partner_id = #{partnerId},
+            amount = #{amount}, order_time = #{orderTime}, remark = #{remark}
+        WHERE id = #{id} AND status = '待审核'
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tb_order WHERE id = #{id} AND status = '待审核'
+    </delete>
+
+    <!-- Dashboard Queries -->
+    <select id="selectTotalOrders" resultType="long">
+        SELECT COUNT(*) FROM tb_order
+    </select>
+
+    <select id="selectTotalAmount" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(amount), 0) FROM tb_order
+    </select>
+
+    <select id="selectCountByStatus" resultType="long">
+        SELECT COUNT(*) FROM tb_order WHERE status = #{status}
+    </select>
+
+    <select id="selectAmountByStatus" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(amount), 0) FROM tb_order WHERE status = #{status}
+    </select>
+
+    <select id="selectRecentOrders" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/>
+        <include refid="FromClause"/>
+        ORDER BY o.id DESC LIMIT #{limit}
+    </select>
+
+    <!-- Report Queries -->
+    <select id="selectTypeStats" resultType="java.util.Map">
+        SELECT o.type AS name, COUNT(*) AS count, COALESCE(SUM(o.amount), 0) AS amount
+        FROM tb_order o
+        <where>
+            <if test="type != null and type != ''">AND o.type = #{type}</if>
+            <if test="partnerId != null">AND o.partner_id = #{partnerId}</if>
+        </where>
+        GROUP BY o.type ORDER BY count DESC
+    </select>
+
+    <select id="selectPartnerStats" resultType="java.util.Map">
+        SELECT p.name AS name, COUNT(*) AS count, COALESCE(SUM(o.amount), 0) AS amount
+        FROM tb_order o JOIN tb_partner p ON o.partner_id = p.id
+        <where>
+            <if test="partnerId != null">AND o.partner_id = #{partnerId}</if>
+            <if test="type != null and type != ''">AND o.type = #{type}</if>
+        </where>
+        GROUP BY p.name ORDER BY count DESC
+    </select>
+
+    <select id="selectStatusStats" resultType="java.util.Map">
+        SELECT o.status AS name, COUNT(*) AS count, COALESCE(SUM(o.amount), 0) AS amount
+        FROM tb_order o
+        <where>
+            <if test="status != null and status != ''">AND o.status = #{status}</if>
+            <if test="type != null and type != ''">AND o.type = #{type}</if>
+            <if test="partnerId != null">AND o.partner_id = #{partnerId}</if>
+        </where>
+        GROUP BY o.status ORDER BY count DESC
+    </select>
+
+    <select id="selectPartnerRank" resultType="java.util.Map">
+        SELECT p.name AS name, COUNT(*) AS count, COALESCE(SUM(o.amount), 0) AS amount
+        FROM tb_order o JOIN tb_partner p ON o.partner_id = p.id
+        GROUP BY p.name ORDER BY amount DESC LIMIT 10
+    </select>
+</mapper>

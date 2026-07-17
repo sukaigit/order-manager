@@ -12,7 +12,7 @@
     </div>
     <table class="data-table">
       <tr><th>合作方编号</th><th>合作方名称</th><th>联系人</th><th>联系电话</th><th>备注</th><th>操作</th></tr>
-      <tr v-for="p in pagedList" :key="p.code">
+      <tr v-for="p in pagedList" :key="p.id || p.code">
         <td style="font-size:12px;color:var(--color-text-muted)">{{ p.code }}</td><td>{{ p.name }}</td><td>{{ p.contact }}</td><td>{{ p.phone }}</td>
         <td style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.remark }}</td>
         <td style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center">
@@ -23,15 +23,15 @@
     </table>
     <div class="pagination">
       <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-text-muted)">
-        <select class="form-select" v-model.number="pageSize" @change="page=1" style="padding:4px 8px;font-size:12px;width:auto">
+        <select class="form-select" v-model.number="pageSize" @change="page=1; loadData()" style="padding:4px 8px;font-size:12px;width:auto">
           <option :value="5">5条/页</option><option :value="10">10条/页</option><option :value="20">20条/页</option><option :value="50">50条/页</option>
         </select>
-        <span>显示第 {{ (page-1)*pageSize+1 }}-{{ Math.min(page*pageSize,totalCount) }} 条，共 {{ totalCount }} 条</span>
+        <span>显示第 {{ startRecord }}-{{ endRecord }} 条，共 {{ totalCount }} 条</span>
       </div>
       <div style="display:flex;gap:4px">
-        <button class="page-btn" :disabled="page<=1" @click="page=Math.max(1,page-1)">上一页</button>
-        <button class="page-btn" v-for="n in pageNumbers" :key="n" :class="{active:n===page}" @click="typeof n==='number'&&(page=n)" v-text="n"></button>
-        <button class="page-btn" :disabled="page>=totalPages" @click="page=Math.min(totalPages,page+1)">下一页</button>
+        <button class="page-btn" :disabled="page<=1" @click="page=Math.max(1,page-1); loadData()">上一页</button>
+        <button class="page-btn" v-for="n in pageNumbers" :key="n" :class="{active:n===page}" @click="typeof n==='number'&&(page=n)&&loadData()" v-text="n"></button>
+        <button class="page-btn" :disabled="page>=totalPages" @click="page=Math.min(totalPages,page+1); loadData()">下一页</button>
       </div>
     </div>
 
@@ -71,50 +71,103 @@
   </div>
 </template>
 <script>
+import api from '../utils/api'
 export default {
   data: () => ({
     fCode:'', fName:'', fContact:'',
     showForm:false, showDelete:false, formMode:'add', deleteTarget:null, deleteBlocked:false,
     form:{code:'',name:'',contact:'',phone:'',remark:''},
     page:1, pageSize:5,
-    partners:[
-      {code:'PARTNER-001',name:'合作方A',contact:'张三',phone:'13800138001',remark:''},
-      {code:'PARTNER-002',name:'合作方B',contact:'李四',phone:'13800138002',remark:''},
-      {code:'PARTNER-003',name:'合作方C',contact:'王五',phone:'13800138003',remark:''},
-      {code:'PARTNER-004',name:'合作方D',contact:'赵六',phone:'13800138004',remark:''},
-      {code:'PARTNER-005',name:'合作方E',contact:'孙七',phone:'13800138005',remark:''},
-      {code:'PARTNER-006',name:'合作方F',contact:'周八',phone:'13800138006',remark:''},
-      {code:'PARTNER-007',name:'合作方G',contact:'吴九',phone:'13800138007',remark:''},
-      {code:'PARTNER-008',name:'合作方H',contact:'郑十',phone:'13800138008',remark:''},
-    ],
-    // 模拟有订单的合作方
-    partnersWithOrders: ['合作方A','合作方B','合作方C','合作方D'],
+    partnerList:[], totalCount:0
   }),
   computed:{
-    totalCount(){return this.filteredList.length},
-    totalPages(){return Math.ceil(this.filteredList.length/this.pageSize)||1},
-    pagedList(){const s=(this.page-1)*this.pageSize;return this.filteredList.slice(s,s+this.pageSize)},
-    filteredList(){return this.partners.filter(p=>{if(this.fCode&&!p.code.includes(this.fCode.toUpperCase()))return false;if(this.fName&&!p.name.includes(this.fName))return false;if(this.fContact&&!p.contact.includes(this.fContact))return false;return true})},
+    totalPages(){return Math.ceil(this.totalCount/this.pageSize)||1},
+    startRecord(){return this.totalCount===0?0:(this.page-1)*this.pageSize+1},
+    endRecord(){return Math.min(this.page*this.pageSize,this.totalCount)},
+    pagedList(){
+      const s=(this.page-1)*this.pageSize
+      return this.partnerList.slice(s, s+this.pageSize)
+    },
     pageNumbers(){const tp=this.totalPages,cp=this.page;if(tp<=7)return Array.from({length:tp},(_,i)=>i+1);const p=[1];if(cp>3)p.push('...');for(let i=Math.max(2,cp-1);i<=Math.min(tp-1,cp+1);i++)p.push(i);if(cp<tp-2)p.push('...');p.push(tp);return p},
-    deleteMsg(){return this.deleteBlocked?'该合作方已有订单，不可删除':'确定要删除合作方「'+this.deleteTarget?.name+'」吗？'},
+    deleteMsg(){return this.deleteBlocked?'该合作方已有订单，不可删除':'确定要删除合作方「'+this.deleteTarget?.name+'」吗？'}
   },
+  mounted(){ this.loadData() },
   methods:{
-    query(){this.page=1},
-    resetQuery(){this.fCode='';this.fName='';this.fContact='';this.page=1},
+    async loadData(){
+      try {
+        const params = { page: this.page, pageSize: this.pageSize }
+        if (this.fCode) params.code = this.fCode
+        if (this.fName) params.name = this.fName
+        if (this.fContact) params.contact = this.fContact
+        const res = await api.get('/partners', { params })
+        const data = res.data || res
+        this.partnerList = data.list || data
+        this.totalCount = data.total || this.partnerList.length
+      } catch (e) {
+        this.$emit('toast', { msg: '加载合作方失败：' + e.message, type: 'error' })
+      }
+    },
+    query(){ this.page=1; this.loadData() },
+    resetQuery(){ this.fCode=''; this.fName=''; this.fContact=''; this.page=1; this.loadData() },
     openAdd(){this.formMode='add';this.form={code:'',name:'',contact:'',phone:'',remark:''};this.showForm=true},
     openEdit(p){this.formMode='edit';this.form={...p};this.showForm=true},
-    saveForm(){if(!this.form.name||!this.form.contact||!this.form.phone){this.$emit('toast',{msg:'请填写必填信息',type:'warning'});return};if(!/^1\d{10}$/.test(this.form.phone)){this.$emit('toast',{msg:'请输入正确的11位手机号',type:'warning'});return};if(this.formMode==='add'){const n=String(this.partners.length+1).padStart(3,'0');this.partners.push({...this.form,code:'PARTNER-'+String(1000+this.partners.length+1)});this.$emit('toast',{msg:'新增合作方成功',type:'success'})}else{const i=this.partners.findIndex(x=>x.code===this.form.code);if(i>=0)this.partners.splice(i,1,{...this.form});this.$emit('toast',{msg:'编辑成功',type:'success'})};this.showForm=false},
-    doDelete(p){this.deleteTarget=p;this.deleteBlocked=this.partnersWithOrders.includes(p.name);this.showDelete=true},
-    confirmDelete(){if(!this.deleteBlocked&&this.deleteTarget){this.partners=this.partners.filter(x=>x.code!==this.deleteTarget.code);this.$emit('toast',{msg:'已删除合作方「'+this.deleteTarget.name+'」',type:'success'})};this.showDelete=false;this.deleteTarget=null},
-    doExport(){
-      const d=this.filteredList.map(p=>[p.code,p.name,p.contact,p.phone,p.remark])
-      d.unshift(['合作方编号','合作方名称','联系人','联系电话','备注'])
-      const rows=d.map(r=>'<Row>'+r.map(c=>'<Cell><Data ss:Type="String">'+String(c).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</Data></Cell>').join('')+'</Row>').join('')
-      const xml='<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="合作方列表"><Table>'+rows+'</Table></Worksheet></Workbook>'
-      const b=new Blob([xml],{type:'application/vnd.ms-excel;charset=utf-8'}),u=URL.createObjectURL(b),a=document.createElement('a')
-      a.href=u;a.download='合作方列表_'+new Date().toISOString().slice(0,10)+'.xls';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u)
-      this.$emit('toast',{msg:'导出成功：'+d.length+' 条记录',type:'success'})
+    async saveForm(){
+      if(!this.form.name||!this.form.contact||!this.form.phone){this.$emit('toast',{msg:'请填写必填信息',type:'warning'});return}
+      if(!/^1\d{10}$/.test(this.form.phone)){this.$emit('toast',{msg:'请输入正确的11位手机号',type:'warning'});return}
+      try {
+        const payload = { name: this.form.name, contact: this.form.contact, phone: this.form.phone, remark: this.form.remark }
+        if (this.formMode === 'add') {
+          await api.post('/partners', payload)
+          this.$emit('toast', { msg: '新增合作方成功', type: 'success' })
+        } else {
+          await api.put('/partners/' + this.form.id, payload)
+          this.$emit('toast', { msg: '编辑成功', type: 'success' })
+        }
+        this.showForm = false
+        this.loadData()
+      } catch (e) {
+        this.$emit('toast', { msg: '保存失败：' + e.message, type: 'error' })
+      }
     },
+    async doDelete(p){
+      this.deleteTarget = p
+      this.deleteBlocked = false
+      this.showDelete = true
+    },
+    async confirmDelete(){
+      if (!this.deleteTarget) return
+      try {
+        await api.delete('/partners/' + this.deleteTarget.id)
+        this.$emit('toast', { msg: '已删除合作方「' + this.deleteTarget.name + '」', type: 'success' })
+        this.showDelete = false
+        this.deleteTarget = null
+        this.loadData()
+      } catch (e) {
+        if (e.message && (e.message.includes('400') || e.message.includes('订单'))) {
+          this.deleteBlocked = true
+        } else {
+          this.$emit('toast', { msg: '删除失败：' + e.message, type: 'error' })
+          this.showDelete = false
+          this.deleteTarget = null
+        }
+      }
+    },
+    async doExport(){
+      try {
+        const res = await api.get('/partners/export', { responseType: 'blob' })
+        const url = URL.createObjectURL(new Blob([res], { type: 'application/vnd.ms-excel' }))
+        const a = document.createElement('a')
+        a.href = url
+        a.download = '合作方列表_' + new Date().toISOString().slice(0, 10) + '.xls'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        this.$emit('toast', { msg: '导出成功', type: 'success' })
+      } catch (e) {
+        this.$emit('toast', { msg: '导出失败：' + e.message, type: 'error' })
+      }
+    }
   }
 }
 </script>

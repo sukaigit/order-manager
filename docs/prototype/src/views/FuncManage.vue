@@ -10,9 +10,10 @@
       <div style="flex:1"></div>
       <button class="btn btn-primary" @click="openAdd">新增功能</button>
     </div>
-    <table class="data-table">
+    <div v-if="loading" style="text-align:center;padding:40px;color:var(--color-text-muted)">加载中...</div>
+    <table class="data-table" v-else>
       <tr><th>功能编号</th><th>功能名称</th><th>所属菜单</th><th>权限标识</th><th>备注</th><th>操作</th></tr>
-      <tr v-for="f in pagedList" :key="f.code">
+      <tr v-for="f in pagedList" :key="f.id || f.code">
         <td style="color:var(--color-text-muted);font-size:12px">{{ f.code }}</td><td>{{ f.name }}</td><td>{{ f.menu }}</td><td><code style="background:var(--color-bg);padding:2px 6px;border-radius:4px;font-size:12px">{{ f.perm }}</code></td>
                 <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.remark }}</td>
                 <td><button class="btn btn-text btn-sm" @click="openEdit(f)">编辑</button><button class="btn btn-text btn-sm" style="color:var(--color-danger)" @click="doDelete(f)">删除</button></td>
@@ -71,53 +72,15 @@
   </div>
 </template>
 <script>
+import api from '../utils/api'
 export default {
   data: () => ({
-    fName:'', fMenu:'全部', fCode:'', fPerm:'', showForm:false, showDelete:false, formMode:'add', form:{code:'',name:'',menu:'',perm:'',remark:''},
+    loading: false,
+    fName:'', fMenu:'全部', fCode:'', fPerm:'', showForm:false, showDelete:false, formMode:'add',
+    form:{code:'',name:'',menu:'',perm:'',remark:''},
     page: 1, pageSize: 5, deleteTarget: null,
-    menus: ['首页','用户管理','部门管理','机构管理','角色管理','菜单管理','功能管理','操作日志'],
-    funcs:[
-      // 首页
-      {code:'DASHBOARD_VIEW',name:'首页查看',menu:'首页',perm:'dashboard:view'},
-      // 用户管理
-      {code:'USER_QUERY',name:'用户查询',menu:'用户管理',perm:'user:query'},
-      {code:'USER_CREATE',name:'用户新增',menu:'用户管理',perm:'user:create'},
-      {code:'USER_UPDATE',name:'用户编辑',menu:'用户管理',perm:'user:update'},
-      {code:'USER_DELETE',name:'用户删除',menu:'用户管理',perm:'user:delete'},
-      {code:'USER_TOGGLE',name:'用户启用/禁用',menu:'用户管理',perm:'user:toggle'},
-      {code:'USER_RESETPWD',name:'重置密码',menu:'用户管理',perm:'user:resetpwd'},
-      {code:'USER_UNLOCK',name:'解锁用户',menu:'用户管理',perm:'user:unlock'},
-      // 部门管理
-      {code:'DEPT_QUERY',name:'部门查询',menu:'部门管理',perm:'dept:query'},
-      {code:'DEPT_CREATE',name:'部门新增',menu:'部门管理',perm:'dept:create'},
-      {code:'DEPT_UPDATE',name:'部门编辑',menu:'部门管理',perm:'dept:update'},
-      {code:'DEPT_DELETE',name:'部门删除',menu:'部门管理',perm:'dept:delete'},
-      // 机构管理
-      {code:'ORG_QUERY',name:'机构查询',menu:'机构管理',perm:'org:query'},
-      {code:'ORG_CREATE',name:'机构新增',menu:'机构管理',perm:'org:create'},
-      {code:'ORG_UPDATE',name:'机构编辑',menu:'机构管理',perm:'org:update'},
-      {code:'ORG_DELETE',name:'机构删除',menu:'机构管理',perm:'org:delete'},
-      // 角色管理
-      {code:'ROLE_QUERY',name:'角色查询',menu:'角色管理',perm:'role:query'},
-      {code:'ROLE_CREATE',name:'角色新增',menu:'角色管理',perm:'role:create'},
-      {code:'ROLE_UPDATE',name:'角色编辑',menu:'角色管理',perm:'role:update'},
-      {code:'ROLE_DELETE',name:'角色删除',menu:'角色管理',perm:'role:delete'},
-      {code:'ROLE_PERMISSION',name:'分配权限',menu:'角色管理',perm:'role:permission'},
-      // 菜单管理
-      {code:'MENU_QUERY',name:'菜单查询',menu:'菜单管理',perm:'menu:query'},
-      {code:'MENU_CREATE',name:'菜单新增',menu:'菜单管理',perm:'menu:create'},
-      {code:'MENU_UPDATE',name:'菜单编辑',menu:'菜单管理',perm:'menu:update'},
-      {code:'MENU_DELETE',name:'菜单删除',menu:'菜单管理',perm:'menu:delete'},
-      {code:'MENU_ADDCHILD',name:'新增子菜单',menu:'菜单管理',perm:'menu:addchild'},
-      {code:'MENU_SORT',name:'菜单排序',menu:'菜单管理',perm:'menu:sort'},
-      // 功能管理
-      {code:'FUNC_QUERY',name:'功能查询',menu:'功能管理',perm:'func:query'},
-      {code:'FUNC_CREATE',name:'功能新增',menu:'功能管理',perm:'func:create'},
-      {code:'FUNC_UPDATE',name:'功能编辑',menu:'功能管理',perm:'func:update'},
-      {code:'FUNC_DELETE',name:'功能删除',menu:'功能管理',perm:'func:delete'},
-      // 操作日志
-      {code:'LOG_VIEW',name:'日志查看',menu:'操作日志',perm:'log:view'},
-    ]
+    funcs: [],
+    menus: []
   }),
   computed:{
     totalPages() { return Math.ceil(this.funcList.length / this.pageSize) || 1 },
@@ -144,23 +107,77 @@ export default {
       return pages
     }
   },
+  mounted() { this.loadData() },
   methods:{
+    async loadData() {
+      this.loading = true
+      try {
+        const [funcsRes, menusRes] = await Promise.all([
+          api.get('/functions'),
+          api.get('/menus/tree')
+        ])
+        const funcsData = funcsRes.data?.list || funcsRes.data || funcsRes || []
+        this.funcs = funcsData
+        const menusData = menusRes.data?.list || menusRes.data || menusRes || []
+        const flatten = (nodes, nameList) => {
+          for (const n of nodes) {
+            const label = n.label || n.name
+            if (label && !nameList.includes(label)) nameList.push(label)
+            if (n.children && n.children.length) flatten(n.children, nameList)
+          }
+          return nameList
+        }
+        this.menus = flatten(menusData, [])
+      } catch (e) {
+        this.$emit('toast',{msg:'加载数据失败: ' + (e.message || ''),type:'error'})
+      } finally {
+        this.loading = false
+      }
+    },
     query(){this.page=1},
     resetQuery(){this.fName='';this.fMenu='全部';this.fCode='';this.fPerm='';this.page=1},
     openAdd(){this.formMode='add';this.form={code:'',name:'',menu:'',perm:'',remark:''};this.showForm=true},
     openEdit(f){this.formMode='edit';this.form={...f};this.showForm=true},
-    saveForm(){
+    async saveForm(){
       if(!this.form.name||!this.form.perm||!this.form.menu){this.$emit('toast',{msg:'请填写完整信息',type:'warning'});return}
-      this.form.code = this.form.perm.replace(':','_').toUpperCase()
-      if(this.formMode==='add'){this.funcs.push({...this.form});this.$emit('toast',{msg:'新增功能成功',type:'success'})}
-      else{const i=this.funcs.findIndex(x=>x.code.replace(/_/g,':').toLowerCase()===this.form.perm);if(i>=0)this.funcs.splice(i,1,{...this.form});this.$emit('toast',{msg:'编辑成功',type:'success'})}
-      this.showForm=false
+      try {
+        const payload = {
+          name: this.form.name,
+          menu: this.form.menu,
+          perm: this.form.perm,
+          remark: this.form.remark || ''
+        }
+        if (!this.form.code) {
+          payload.code = this.form.perm.replace(':','_').toUpperCase()
+        } else {
+          payload.code = this.form.code
+        }
+        if(this.formMode==='add'){
+          await api.post('/functions', payload)
+          this.$emit('toast',{msg:'新增功能成功',type:'success'})
+        } else {
+          const id = this.form.id || this.form.code
+          await api.put('/functions/' + id, payload)
+          this.$emit('toast',{msg:'编辑成功',type:'success'})
+        }
+        this.showForm=false
+        await this.loadData()
+      } catch (e) {
+        this.$emit('toast',{msg:'操作失败: ' + (e.message || ''),type:'error'})
+        this.showForm=false
+      }
     },
     doDelete(f){this.deleteTarget=f;this.showDelete=true},
-    confirmDelete(){
+    async confirmDelete(){
       if(this.deleteTarget){
-        this.funcs=this.funcs.filter(x=>x.code!==this.deleteTarget.code)
-        this.$emit('toast',{msg:'已删除功能「'+this.deleteTarget.name+'」',type:'success'})
+        try {
+          const id = this.deleteTarget.id || this.deleteTarget.code
+          await api.delete('/functions/' + id)
+          this.funcs=this.funcs.filter(x=>(x.id||x.code)!==id)
+          this.$emit('toast',{msg:'已删除功能「'+this.deleteTarget.name+'」',type:'success'})
+        } catch (e) {
+          this.$emit('toast',{msg:'删除失败: ' + (e.message || ''),type:'error'})
+        }
       }
       this.showDelete=false; this.deleteTarget=null
     },

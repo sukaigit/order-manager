@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ordermanager.mapper.PartnerMapper">
+
+    <resultMap id="BaseMap" type="Partner">
+        <id column="id" property="id"/>
+        <result column="code" property="code"/>
+        <result column="name" property="name"/>
+        <result column="contact" property="contact"/>
+        <result column="phone" property="phone"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="BaseColumns">id, code, name, contact, phone, remark, create_time, update_time</sql>
+
+    <sql id="WhereClause">
+        <where>
+            <if test="code != null and code != ''">AND code LIKE CONCAT('%', #{code}, '%')</if>
+            <if test="name != null and name != ''">AND name LIKE CONCAT('%', #{name}, '%')</if>
+            <if test="contact != null and contact != ''">AND contact LIKE CONCAT('%', #{contact}, '%')</if>
+        </where>
+    </sql>
+
+    <select id="selectList" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_partner
+        <include refid="WhereClause"/>
+        ORDER BY id DESC LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectCount" resultType="long">
+        SELECT COUNT(*) FROM tb_partner
+        <include refid="WhereClause"/>
+    </select>
+
+    <select id="selectById" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_partner WHERE id = #{id}
+    </select>
+
+    <select id="selectByCode" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_partner WHERE code = #{code}
+    </select>
+
+    <select id="selectByName" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_partner WHERE name = #{name}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_partner (code, name, contact, phone, remark)
+        VALUES (#{code}, #{name}, #{contact}, #{phone}, #{remark})
+    </insert>
+
+    <update id="update">
+        UPDATE tb_partner
+        SET name = #{name}, contact = #{contact}, phone = #{phone}, remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tb_partner WHERE id = #{id}
+    </delete>
+
+    <select id="selectAll" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_partner ORDER BY id
+    </select>
+
+    <select id="selectOrderCount" resultType="long">
+        SELECT COUNT(*) FROM tb_order WHERE partner_id = #{partnerId}
+    </select>
+
+    <select id="selectMaxId" resultType="java.lang.Long">
+        SELECT MAX(id) FROM tb_partner
+    </select>
+</mapper>

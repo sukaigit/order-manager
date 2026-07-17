@@ -8,9 +8,10 @@
       <div style="flex:1"></div>
       <button class="btn btn-primary" @click="openAdd">新增角色</button>
     </div>
-    <table class="data-table">
+    <div v-if="loading" style="text-align:center;padding:40px;color:var(--color-text-muted)">加载中...</div>
+    <table class="data-table" v-else>
       <tr><th>角色编号</th><th>角色名称</th><th>权限数</th><th>用户数</th><th>备注</th><th>操作</th></tr>
-      <tr v-for="r in pagedList" :key="r.code">
+      <tr v-for="r in pagedList" :key="r.id || r.code">
         <td style="color:var(--color-text-muted);font-size:12px">{{ r.code }}</td><td>{{ r.name }}</td><td>{{ r.permCount }}</td><td>{{ r.userCount }}</td>
                 <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.remark }}</td>
                 <td><button class="btn btn-text btn-sm" @click="openEdit(r)">编辑</button><button class="btn btn-text btn-sm" @click="openPerm(r)">分配权限</button><button class="btn btn-text btn-sm" style="color:var(--color-danger)" @click="doDelete(r)">删除</button></td>
@@ -119,47 +120,16 @@
   </div>
 </template>
 <script>
+import api from '../utils/api'
 export default {
   data: () => ({
+    loading: false,
     fName:'', fCode:'', showForm:false, showDelete:false, showPerm:false, formMode:'add', sysExpanded:true,
     form:{code:'',name:'',remark:''}, permRole:null, selectedFuncs:[], selectedMenus:[],
     page: 1, pageSize: 5, deleteTarget: null,
-    allMenus: [
-      {code:'MENU_DASHBOARD',name:'首页',parent:''},{code:'MENU_SUPPLIERS',name:'供应商管理',parent:''},
-      {code:'MENU_ORDERS',name:'订单管理',parent:''},{code:'MENU_SETTLEMENTS',name:'对账结算',parent:''},
-      {code:'MENU_REPORTS',name:'报表统计',parent:''},{code:'MENU_SYSTEM',name:'系统管理',parent:''},
-      {code:'MENU_USERS',name:'用户管理',parent:'MENU_SYSTEM'},{code:'MENU_ROLES',name:'角色管理',parent:'MENU_SYSTEM'},
-      {code:'MENU_MENUS',name:'菜单管理',parent:'MENU_SYSTEM'},{code:'MENU_FUNCS',name:'功能管理',parent:'MENU_SYSTEM'},
-      {code:'MENU_LOGS',name:'操作日志',parent:'MENU_SYSTEM'},
-    ],
-    allFuncs: [
-      {code:'SUPPLIER_QUERY',name:'供应商查询',menu:'供应商管理'},{code:'SUPPLIER_CREATE',name:'供应商新增',menu:'供应商管理'},
-      {code:'SUPPLIER_UPDATE',name:'供应商编辑',menu:'供应商管理'},{code:'SUPPLIER_DELETE',name:'供应商删除',menu:'供应商管理'},
-      {code:'SUPPLIER_IMPORT',name:'供应商导入',menu:'供应商管理'},{code:'SUPPLIER_EXPORT',name:'供应商导出',menu:'供应商管理'},
-      {code:'ORDER_QUERY',name:'订单查询',menu:'订单管理'},{code:'ORDER_CREATE',name:'订单新增',menu:'订单管理'},
-      {code:'ORDER_UPDATE',name:'订单编辑',menu:'订单管理'},{code:'ORDER_DELETE',name:'订单删除',menu:'订单管理'},
-      {code:'ORDER_APPROVE',name:'订单审核',menu:'订单管理'},{code:'ORDER_EXPORT',name:'订单导出',menu:'订单管理'},
-      {code:'SETTLEMENT_QUERY',name:'对账查询',menu:'对账结算'},{code:'SETTLEMENT_CREATE',name:'生成对账单',menu:'对账结算'},
-      {code:'SETTLEMENT_SETTLE',name:'标记结算',menu:'对账结算'},{code:'SETTLEMENT_EXPORT',name:'对账导出',menu:'对账结算'},
-      {code:'REPORT_VIEW',name:'报表查看',menu:'报表统计'},
-      {code:'USER_QUERY',name:'用户查询',menu:'用户管理'},{code:'USER_CREATE',name:'用户新增',menu:'用户管理'},
-      {code:'USER_UPDATE',name:'用户编辑',menu:'用户管理'},{code:'USER_DELETE',name:'用户删除',menu:'用户管理'},
-      {code:'USER_TOGGLE',name:'用户启用/禁用',menu:'用户管理'},{code:'USER_RESETPWD',name:'重置密码',menu:'用户管理'},
-      {code:'ROLE_QUERY',name:'角色查询',menu:'角色管理'},{code:'ROLE_CREATE',name:'角色新增',menu:'角色管理'},
-      {code:'ROLE_UPDATE',name:'角色编辑',menu:'角色管理'},{code:'ROLE_DELETE',name:'角色删除',menu:'角色管理'},
-      {code:'ROLE_PERMISSION',name:'分配权限',menu:'角色管理'},
-      {code:'MENU_QUERY',name:'菜单查询',menu:'菜单管理'},{code:'MENU_CREATE',name:'菜单新增',menu:'菜单管理'},
-      {code:'MENU_UPDATE',name:'菜单编辑',menu:'菜单管理'},{code:'MENU_DELETE',name:'菜单删除',menu:'菜单管理'},
-      {code:'FUNC_QUERY',name:'功能查询',menu:'功能管理'},{code:'FUNC_CREATE',name:'功能新增',menu:'功能管理'},
-      {code:'FUNC_UPDATE',name:'功能编辑',menu:'功能管理'},{code:'FUNC_DELETE',name:'功能删除',menu:'功能管理'},
-      {code:'LOG_VIEW',name:'日志查看',menu:'操作日志'},
-    ],
-    roles:[
-      {code:'SYSTEM_ADMIN',name:'系统管理员',permCount:50,userCount:2},
-      {code:'OPERATOR',name:'操作员',permCount:25,userCount:5},
-      {code:'APPROVER',name:'审批员',permCount:15,userCount:3},
-      {code:'NORMAL_USER',name:'普通用户',permCount:8,userCount:8},
-    ]
+    roles: [],
+    allMenus: [],
+    allFuncs: []
   }),
   computed:{
     totalPages() { return Math.ceil(this.roleList.length / this.pageSize) || 1 },
@@ -178,7 +148,6 @@ export default {
       this.allMenus.forEach(m => {
         if(!map[m.name]) map[m.name] = { code: m.code, name: m.name, funcs: [], children: null }
       })
-      // Attach children to system
       const sys = map['系统管理']
       if (sys) {
         sys.children = []
@@ -186,7 +155,6 @@ export default {
           if (map[child.name]) { sys.children.push(map[child.name]); delete map[child.name] }
         })
       }
-      // Return only top-level menus (no parent)
       return this.allMenus.filter(m => !m.parent).map(m => map[m.name]).filter(Boolean)
     },
     pageNumbers() {
@@ -201,39 +169,100 @@ export default {
       return pages
     }
   },
+  mounted() { this.loadData() },
   methods:{
+    async loadData() {
+      this.loading = true
+      try {
+        const [rolesRes, menusRes, funcsRes] = await Promise.all([
+          api.get('/roles'),
+          api.get('/menus/tree'),
+          api.get('/functions/list')
+        ])
+        const roleData = rolesRes.data?.list || rolesRes.data || rolesRes || []
+        this.roles = roleData
+        const menusData = menusRes.data?.list || menusRes.data || menusRes || []
+        // Flatten menu tree into flat list for permission UI
+        const flatten = (nodes, parent) => {
+          const result = []
+          for (const n of nodes) {
+            const children = n.children || []
+            result.push({ code: n.code, name: n.label || n.name, parent: parent || '' })
+            if (children.length) result.push(...flatten(children, n.code))
+          }
+          return result
+        }
+        this.allMenus = flatten(menusData)
+        const funcsData = funcsRes.data?.list || funcsRes.data || funcsRes || []
+        this.allFuncs = funcsData.map(f => ({ code: f.code, name: f.name, menu: f.menu || '' }))
+      } catch (e) {
+        this.$emit('toast',{msg:'加载数据失败: ' + (e.message || ''),type:'error'})
+      } finally {
+        this.loading = false
+      }
+    },
     query(){this.page=1},
     resetQuery(){this.fName='';this.fCode='';this.page=1},
     openAdd(){this.formMode='add';this.form={code:'',name:''};this.showForm=true},
     openEdit(r){this.formMode='edit';this.form={...r};this.showForm=true},
-    saveForm(){
+    async saveForm(){
       if(!this.form.name){this.$emit('toast',{msg:'请输入角色名称',type:'warning'});return}
-      if(!this.form.code){
-        const map = { '系统管理员':'SYSTEM_ADMIN','操作员':'OPERATOR','审批员':'APPROVER','普通用户':'NORMAL_USER' }
-        this.form.code = map[this.form.name] || this.form.name.replace(/[^a-zA-Z0-9]/g,'_').toUpperCase()
+      try {
+        if(this.formMode==='add'){
+          const payload = { code: this.form.code, name: this.form.name, remark: this.form.remark || '' }
+          await api.post('/roles', payload)
+          this.$emit('toast',{msg:'新增角色成功',type:'success'})
+        } else {
+          const id = this.form.id || this.form.code
+          await api.put('/roles/' + id, { code: this.form.code, name: this.form.name, remark: this.form.remark || '' })
+          this.$emit('toast',{msg:'编辑成功',type:'success'})
+        }
+        this.showForm=false
+        await this.loadData()
+      } catch (e) {
+        this.$emit('toast',{msg:'操作失败: ' + (e.message || ''),type:'error'})
+        this.showForm=false
       }
-      if(this.formMode==='add'){this.roles.push({...this.form,permCount:0,userCount:0});this.$emit('toast',{msg:'新增角色成功',type:'success'})}
-      else{const i=this.roles.findIndex(x=>x.code===this.form.code);if(i>=0)this.roles.splice(i,1,{...this.form});this.$emit('toast',{msg:'编辑成功',type:'success'})}
-      this.showForm=false
     },
     doDelete(r){this.deleteTarget=r;this.showDelete=true},
-    confirmDelete(){
+    async confirmDelete(){
       if(this.deleteTarget){
-        this.roles=this.roles.filter(x=>x.name!==this.deleteTarget.name)
-        this.$emit('toast',{msg:'已删除角色「'+this.deleteTarget.name+'」',type:'success'})
+        try {
+          const id = this.deleteTarget.id || this.deleteTarget.code
+          await api.delete('/roles/' + id)
+          this.roles=this.roles.filter(x=>(x.id||x.code)!==id)
+          this.$emit('toast',{msg:'已删除角色「'+this.deleteTarget.name+'」',type:'success'})
+        } catch (e) {
+          this.$emit('toast',{msg:'删除失败: ' + (e.message || ''),type:'error'})
+        }
       }
       this.showDelete=false; this.deleteTarget=null
     },
-    openPerm(r){
+    async openPerm(r){
       this.permRole=r
-      this.selectedFuncs = r.perms?.funcs ? [...r.perms.funcs] : []
-      this.selectedMenus = r.perms?.menus ? [...r.perms.menus] : []
+      this.selectedFuncs = []
+      this.selectedMenus = []
+      try {
+        const id = r.id || r.code
+        const res = await api.get('/roles/' + id + '/permissions')
+        const permData = res.data || res || {}
+        this.selectedFuncs = permData.funcCodes || permData.funcs || []
+        this.selectedMenus = permData.menuCodes || permData.menus || []
+      } catch (e) {
+        // Gracefully handle - no permissions yet
+      }
       this.showPerm=true
     },
-    savePerm(){
-      this.permRole.perms = { funcs: [...this.selectedFuncs], menus: [...this.selectedMenus] }
-      this.permRole.permCount = this.selectedMenus.length + this.selectedFuncs.length
-      this.$emit('toast',{msg:'已为「'+this.permRole.name+'」分配 '+this.permRole.permCount+' 项权限',type:'success'})
+    async savePerm(){
+      const id = this.permRole.id || this.permRole.code
+      try {
+        await api.put('/roles/' + id + '/permissions', { funcCodes: this.selectedFuncs })
+        const count = this.selectedMenus.length + this.selectedFuncs.length
+        this.permRole.permCount = count
+        this.$emit('toast',{msg:'已为「'+this.permRole.name+'」分配 '+count+' 项权限',type:'success'})
+      } catch (e) {
+        this.$emit('toast',{msg:'保存权限失败: ' + (e.message || ''),type:'error'})
+      }
       this.showPerm=false
     },
     toggleSys(){ this.sysExpanded = !this.sysExpanded },

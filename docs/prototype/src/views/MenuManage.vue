@@ -10,7 +10,8 @@
       <div style="flex:1"></div>
       <button class="btn btn-primary" @click="openAdd">新增菜单</button>
     </div>
-    <table class="data-table">
+    <div v-if="loading" style="text-align:center;padding:40px;color:var(--color-text-muted)">加载中...</div>
+    <table class="data-table" v-else>
       <tr><th>菜单编号</th><th>菜单名称</th><th>级别</th><th>路由</th><th>备注</th><th>操作</th></tr>
       <tr v-for="m in pagedList" :key="m.code">
         <td style="color:var(--color-text-muted);font-size:12px">{{ m.code }}</td>
@@ -88,26 +89,14 @@
   </div>
 </template>
 <script>
+import api from '../utils/api'
 export default {
   data: () => ({
+    loading: false,
     fName:'', fCode:'', fType:'全部', fRoute:'', showForm:false, showDelete:false, formMode:'add', deleteTarget:null,
     form:{code:'',label:'',route:'',type:'level1',parent:'',remark:''},
-    page: 1, pageSize: 5, expanded: {MENU_DASHBOARD:false,MENU_SUPPLIERS:false,MENU_ORDERS:false,MENU_SETTLEMENTS:false,MENU_REPORTS:false,MENU_SYSTEM:false},
-    menus:[
-      // 一级菜单
-      {code:'MENU_DASHBOARD',label:'首页',route:'/dashboard',type:'level1',parent:''},
-      {code:'MENU_SUPPLIERS',label:'供应商管理',route:'/suppliers',type:'level1',parent:''},
-      {code:'MENU_ORDERS',label:'订单管理',route:'/orders',type:'level1',parent:''},
-      {code:'MENU_SETTLEMENTS',label:'对账结算',route:'/settlements',type:'level1',parent:''},
-      {code:'MENU_REPORTS',label:'报表统计',route:'/reports',type:'level1',parent:''},
-      {code:'MENU_SYSTEM',label:'系统管理',route:'',type:'level1',parent:''},
-      // 二级菜单
-      {code:'MENU_USERS',label:'用户管理',route:'/users',type:'level2',parent:'MENU_SYSTEM'},
-      {code:'MENU_ROLES',label:'角色管理',route:'/roles',type:'level2',parent:'MENU_SYSTEM'},
-      {code:'MENU_MENUS',label:'菜单管理',route:'/menus',type:'level2',parent:'MENU_SYSTEM'},
-      {code:'MENU_FUNCS',label:'功能管理',route:'/functions',type:'level2',parent:'MENU_SYSTEM'},
-      {code:'MENU_LOGS',label:'操作日志',route:'/logs',type:'level2',parent:'MENU_SYSTEM'},
-    ]
+    page: 1, pageSize: 5, expanded: {},
+    menus: []
   }),
   computed:{
     totalPages() { return Math.ceil(this.treeList.length / this.pageSize) || 1 },
@@ -130,7 +119,6 @@ export default {
     treeList() {
       const level1 = this.filteredMenus.filter(m => m.type==='level1')
       const level2 = this.filteredMenus.filter(m => m.type==='level2')
-      // 筛选时如果 level1 为空但 level2 有数据，从完整列表补充父级
       const parentList = level1.length === 0 && level2.length > 0
         ? this.menus.filter(m => {
             const childParents = level2.map(l2 => l2.parent)
@@ -140,7 +128,6 @@ export default {
       const result = []
       for (const l1 of parentList) {
         result.push(l1)
-        // 筛选时自动展开显示子菜单
         const showChildren = this.expanded[l1.code] || (this.fName || this.fCode || this.fRoute || this.fType !== '全部')
         if (showChildren) {
           for (const l2 of level2) {
@@ -167,31 +154,82 @@ export default {
       return pages
     }
   },
+  mounted() { this.loadData() },
   methods:{
+    async loadData() {
+      this.loading = true
+      try {
+        const res = await api.get('/menus/tree')
+        const tree = (res.data?.list || res.data || res || [])
+        const flatten = (nodes) => {
+          const result = []
+          for (const n of nodes) {
+            const children = n.children || []
+            result.push({
+              code: n.code,
+              label: n.label || n.name,
+              route: n.route || '',
+              type: n.type || (n.parent ? 'level2' : 'level1'),
+              parent: n.parent || '',
+              remark: n.remark || ''
+            })
+            if (children.length) result.push(...flatten(children))
+          }
+          return result
+        }
+        this.menus = flatten(tree)
+      } catch (e) {
+        this.$emit('toast',{msg:'加载数据失败: ' + (e.message || ''),type:'error'})
+      } finally {
+        this.loading = false
+      }
+    },
     query(){this.page=1},
     resetQuery(){this.fName='';this.fCode='';this.fType='全部';this.fRoute='';this.page=1},
-    openAdd(){this.formMode='add';this.form={code:'',label:'',route:'',type:'level1',parent:''};this.showForm=true},
-    openAddChild(parent){this.formMode='addChild';this.form={code:'',label:'',route:'',type:'level2',parent:parent.code};this.showForm=true},
+    openAdd(){this.formMode='add';this.form={code:'',label:'',route:'',type:'level1',parent:'',remark:''};this.showForm=true},
+    openAddChild(parent){this.formMode='addChild';this.form={code:'',label:'',route:'',type:'level2',parent:parent.code,remark:''};this.showForm=true},
     openEdit(m){this.formMode='edit';this.form={...m};this.showForm=true},
-    saveForm(){
+    async saveForm(){
       if(!this.form.label){this.$emit('toast',{msg:'请输入菜单名称',type:'warning'});return}
       if(!this.form.route){this.$emit('toast',{msg:'请输入路由',type:'warning'});return}
-      this.form.code = 'MENU_' + this.form.route.replace(/^\//,'').replace(/\//g,'_').toUpperCase()
-      if(this.formMode.startsWith('add')){
-        this.menus.push({...this.form})
-        this.$emit('toast',{msg:'新增成功',type:'success'})
-      } else {
-        const i=this.menus.findIndex(x=>x.code===this.form.code)
-        if(i>=0)this.menus.splice(i,1,{...this.form})
-        this.$emit('toast',{msg:'编辑成功',type:'success'})
+      try {
+        const payload = {
+          code: this.form.code,
+          label: this.form.label,
+          route: this.form.route,
+          type: this.form.type,
+          parent: this.form.parent || '',
+          remark: this.form.remark || ''
+        }
+        if (!payload.code) {
+          payload.code = 'MENU_' + this.form.route.replace(/^\//,'').replace(/\//g,'_').toUpperCase()
+        }
+        if(this.formMode.startsWith('add')){
+          await api.post('/menus', payload)
+          this.$emit('toast',{msg:'新增成功',type:'success'})
+        } else {
+          const id = this.form.id || this.form.code
+          await api.put('/menus/' + id, payload)
+          this.$emit('toast',{msg:'编辑成功',type:'success'})
+        }
+        this.showForm=false
+        await this.loadData()
+      } catch (e) {
+        this.$emit('toast',{msg:'操作失败: ' + (e.message || ''),type:'error'})
+        this.showForm=false
       }
-      this.showForm=false
     },
     doDelete(m){this.deleteTarget=m;this.showDelete=true},
-    confirmDelete(){
+    async confirmDelete(){
       if(this.deleteTarget){
-        this.menus=this.menus.filter(x=>x.code!==this.deleteTarget.code)
-        this.$emit('toast',{msg:'已删除「'+this.deleteTarget.label+'」',type:'success'})
+        try {
+          const id = this.deleteTarget.id || this.deleteTarget.code
+          await api.delete('/menus/' + id)
+          this.menus=this.menus.filter(x=>(x.id||x.code)!==id)
+          this.$emit('toast',{msg:'已删除「'+this.deleteTarget.label+'」',type:'success'})
+        } catch (e) {
+          this.$emit('toast',{msg:'删除失败: ' + (e.message || ''),type:'error'})
+        }
       }
       this.showDelete=false; this.deleteTarget=null
     },
