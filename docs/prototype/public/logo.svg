@@ -1,14 +1,8 @@
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- 盒子/包裹 - 代表供应商/货物 -->
-  <rect x="2" y="14" width="13" height="14" rx="2.5" stroke="#0066cc" stroke-width="1.5"/>
-  <path d="M2 17h13" stroke="#0066cc" stroke-width="1.5"/>
-  <path d="M8.5 14v6.5" stroke="#0066cc" stroke-width="1.5"/>
-  <path d="M5 18.5l3.5 3 3.5-3" stroke="#0066cc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- 对勾圆圈 - 代表订单确认 -->
-  <circle cx="22" cy="10" r="8" stroke="#30d158" stroke-width="1.5" fill="#e8f8ee"/>
-  <path d="M18 10l3 3 5-5" stroke="#30d158" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- 连接线 - 代表供应链 -->
-  <path d="M15 21l4-11" stroke="#c7d2fe" stroke-width="1.2" stroke-dasharray="2 2"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#0066cc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+  <polyline points="14 2 14 8 20 8"/>
+  <circle cx="12" cy="12" r="1.5" fill="#0066cc" stroke="none"/>
+  <circle cx="12" cy="16" r="1.5" fill="#0066cc" stroke="none"/>
+  <line x1="8" y1="12" x2="9.5" y2="12" stroke="#0066cc" stroke-width="1.2"/>
+  <line x1="8" y1="16" x2="9.5" y2="16" stroke="#0066cc" stroke-width="1.2"/>
 </svg>

@@ -2,12 +2,21 @@
   <div class="app-layout">
     <div class="sidebar">
       <div style="padding:16px 24px;font-weight:600;font-size:15px;border-bottom:1px solid var(--color-border-light);margin-bottom:8px;display:flex;align-items:center;gap:8px">
-        <img src="/logo.svg?v2" style="width:22px;height:22px" />
-        <span>管理系统</span>
+        <img src="/logo.svg?v3" style="width:22px;height:22px" />
+        <span>订单管理系统</span>
       </div>
       <ul class="sidebar-menu">
         <li v-for="m in topMenus" :key="m.path" :class="{ active: $route.path === m.path }" @click="$router.push(m.path)">
           <span class="menu-icon" v-html="m.icon"></span>
+          {{ m.label }}
+        </li>
+        <li @click="reportExpanded=!reportExpanded" :class="{ active: $route.path.startsWith('/reports/') }" style="cursor:pointer">
+          <span class="menu-icon" v-html="reportIcon"></span>
+          <span style="flex:1">报表统计</span>
+          <span style="font-size:10px;color:var(--color-text-muted)">{{ reportExpanded ? '▾' : '▸' }}</span>
+        </li>
+        <li v-for="m in reportMenus" :key="m.path" v-show="reportExpanded" :class="{ active: $route.path === m.path }" @click="$router.push(m.path)" style="padding-left:48px;font-size:12px">
+          <span class="menu-icon" v-html="m.icon" style="width:14px;height:14px"></span>
           {{ m.label }}
         </li>
         <li @click="sysExpanded=!sysExpanded" :class="{ active: $route.path.startsWith('/users')||$route.path.startsWith('/departments')||$route.path.startsWith('/organizations')||$route.path.startsWith('/roles')||$route.path.startsWith('/menus')||$route.path.startsWith('/functions')||$route.path.startsWith('/logs') }" style="cursor:pointer">
@@ -41,11 +50,13 @@ export default {
   data: () => ({
     showMenu: false,
     sysExpanded: true,
+    reportExpanded: true,
     toasts: [],
     currentUser: { name: 'admin', role: '系统管理员' },
     topMenus: [
       { code:'MENU_DASHBOARD', path: '/dashboard', label: '首页', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>' },
-      { code:'MENU_EXAMPLE', path: '/example', label: 'CRUD示例页', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>' },
+      { code:'MENU_ORDERS', path: '/orders', label: '订单管理', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>' },
+      { code:'MENU_PARTNERS', path: '/partners', label: '合作方管理', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>' },
     ],
     sysMenus: [
       { path: '/users', label: '用户管理', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>' },
@@ -56,27 +67,18 @@ export default {
       { path: '/functions', label: '功能管理', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>' },
       { path: '/logs', label: '操作日志', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
     ],
+    reportMenus: [
+      { path: '/reports/type', label: '订单类型统计', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 20h16M6 16l4-6 4 4 4-8"/></svg>' },
+      { path: '/reports/partner', label: '合作方统计', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>' },
+      { path: '/reports/status', label: '订单状态统计', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>' },
+    ],
+    reportIcon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 20h16M6 16l4-6 4 4 4-8"/></svg>',
     sysIcon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
   }),
   methods: {
-    addToast(t) {
-      const id = Date.now()
-      this.toasts.push({ ...t, id })
-      setTimeout(() => { this.toasts = this.toasts.filter(x => x.id !== id) }, 2500)
-    },
-    logout() {
-      this.$router.push('/login')
-    }
+    addToast(t) { const id = Date.now(); this.toasts.push({ ...t, id }); setTimeout(() => { this.toasts = this.toasts.filter(x => x.id !== id) }, 2500) },
+    logout() { this.$router.push('/login') }
   },
-  mounted() {
-    document.addEventListener('click', () => { this.showMenu = false })
-    const stored = localStorage.getItem('menu_order')
-    if (stored) {
-      const order = JSON.parse(stored).filter(c => c !== 'MENU_SYSTEM')
-      const codeMap = {}
-      this.topMenus.forEach(m => { codeMap[m.code] = m })
-      this.topMenus = order.filter(c => codeMap[c]).map(c => codeMap[c]).concat(this.topMenus.filter(m => !order.includes(m.code)))
-    }
-  }
+  mounted() { document.addEventListener('click', () => { this.showMenu = false }) }
 }
 </script>

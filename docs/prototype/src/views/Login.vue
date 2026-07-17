@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <div class="login-card">
-      <h1><img src="/logo.svg?v2" style="width:28px;height:28px;vertical-align:middle;margin-right:10px" />供应商订单管理系统</h1>
+      <h1><img src="/logo.svg?v3" style="width:28px;height:28px;vertical-align:middle;margin-right:10px" />订单管理系统</h1>
       <div class="form-group">
         <label class="form-label">用户名</label>
         <input class="form-input" v-model="form.username" placeholder="请输入用户名" @keyup.enter="login" :disabled="locked" />
