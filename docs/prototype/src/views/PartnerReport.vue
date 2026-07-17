@@ -33,7 +33,7 @@ export default {
         const params = {}
         if (this.fPartner !== '全部') params.partner = this.fPartner
         const res = await api.get('/reports/partner', { params })
-        this.stats = (res.data || res || []).sort((a,b) => (b.amount||0) - (a.amount||0))
+        this.stats = ((res.data && res.data.data) || res.data || res || []).sort((a,b) => (b.amount||0) - (a.amount||0))
       } catch (e) {
         this.$emit('toast', { msg: '加载统计失败：' + e.message, type: 'error' })
       }

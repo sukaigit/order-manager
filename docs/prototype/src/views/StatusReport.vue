@@ -24,7 +24,7 @@ export default {
         const params = {}
         if (this.fStatus !== '全部') params.status = this.fStatus
         const res = await api.get('/reports/status', { params })
-        this.stats = res.data || res
+        this.stats = (res.data && res.data.data) || res.data || res
       } catch (e) {
         this.$emit('toast', { msg: '加载统计失败：' + e.message, type: 'error' })
       }
