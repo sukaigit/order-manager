@@ -51,6 +51,7 @@
           <button class="btn btn-text btn-sm" style="color:var(--color-danger)" @click="doDelete(o)">删除</button>
         </td>
       </tr>
+      <tr v-if="orgs.length===0"><td :colspan="10" style="text-align:center;padding:32px;color:var(--color-text-muted)">暂无数据</td></tr>
     </table>
     <div class="pagination">
       <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-text-muted)">
@@ -135,20 +136,19 @@ export default {
   }),
   computed:{
     rootOrgs() {
-      const list = this.orgs
-      const roots = list.filter(o => !o.parent)
+      const roots = this.filteredOrgs.filter(o => !o.parent)
       if (roots.length === 0 && (this.fName || this.fCode || this.fSname || this.fLevel !== '全部')) {
-        const matchedNonRoots = list.filter(o => o.parent)
+        const matchedNonRoots = this.orgs.filter(o => o.parent)
         const ancestorCodes = new Set()
         for (const o of matchedNonRoots) {
           let p = o.parent
           while (p) {
             ancestorCodes.add(p)
-            const parent = list.find(x => x.code === p)
+            const parent = this.orgs.find(x => x.code === p)
             p = parent ? parent.parent : ''
           }
         }
-        return list.filter(o => ancestorCodes.has(o.code) && !o.parent)
+        return this.orgs.filter(o => ancestorCodes.has(o.code) && !o.parent)
       }
       return roots
     },
@@ -173,15 +173,15 @@ export default {
         for (const o of this.filteredOrgs) {
           visibleCodes.add(o.code)
           let p = o.parent
-          while (p) {
-            visibleCodes.add(p)
-            const parent = list.find(x => x.code === p)
-            p = parent ? parent.parent : ''
-          }
+              while (p) {
+                visibleCodes.add(p)
+                const parent = this.orgs.find(x => x.code === p)
+                p = parent ? parent.parent : ''
+              }
         }
       }
       const findChildren = (parentCode) => {
-        const kids = list.filter(o => o.parent === parentCode && (!visibleCodes.size || visibleCodes.has(o.code)))
+        const kids = this.orgs.filter(o => o.parent === parentCode && (!visibleCodes.size || visibleCodes.has(o.code)))
         const result = []
         for (const k of kids) {
           result.push(k)
@@ -222,22 +222,20 @@ export default {
       this.loading = true
       try {
         const res = await api.get('/organizations/tree')
-        const tree = (res.data?.list || res.data || res || [])
-        // Flatten the tree into a flat list for the existing computed properties
+        const tree = res.data || res || []
+        // Flatten tree into flat list
         const flatten = (nodes) => {
           const result = []
           for (const n of nodes) {
             const children = n.children || []
-            const flatNode = {...n}
-            delete flatNode.children
-            result.push(flatNode)
+            result.push({...n, children: undefined})
             if (children.length) result.push(...flatten(children))
           }
           return result
         }
         this.orgs = flatten(tree)
-      } catch (e) {
-        this.$emit('toast',{msg:'加载数据失败: ' + (e.message || ''),type:'error'})
+      } catch(e) {
+        this.$emit('toast',{msg:'加载机构数据失败',type:'error'})
       } finally {
         this.loading = false
       }
@@ -310,6 +308,6 @@ export default {
       }
       this.showDelete=false; this.deleteTarget=null
     },
-  }
+  },
 }
 </script>

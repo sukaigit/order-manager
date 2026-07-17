@@ -13,6 +13,7 @@
     <table class="data-table" v-else>
       <tr><th>操作人</th><th>操作类型</th><th>操作目标</th><th>IP</th><th>时间</th></tr>
       <tr v-for="l in pagedList" :key="l.id"><td>{{ l.user }}</td><td>{{ l.action }}</td><td>{{ l.target }}</td><td>{{ l.ip }}</td><td>{{ l.time }}</td></tr>
+      <tr v-if="logs.length===0"><td :colspan="5" style="text-align:center;padding:32px;color:var(--color-text-muted)">暂无数据</td></tr>
     </table>
     <div class="pagination">
       <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-text-muted)">
@@ -44,7 +45,6 @@ export default {
     fUser:'', fAction:'', fTarget:'', fIP:'', fDate:'',
     logs: []
   }),
-  mounted() { this.loadData() },
   computed: {
     totalPages() { return Math.ceil(this.filteredList.length / this.pageSize) || 1 },
     filteredList() {
@@ -73,6 +73,7 @@ export default {
       return pages
     }
   },
+  mounted() { this.loadData() },
   methods: {
     async loadData() {
       this.loading = true
@@ -87,6 +88,6 @@ export default {
     },
     query() { this.page = 1 },
     resetQuery() { this.fUser=''; this.fAction=''; this.fTarget=''; this.fIP=''; this.fDate=''; this.page = 1 },
-  }
+  },
 }
 </script>

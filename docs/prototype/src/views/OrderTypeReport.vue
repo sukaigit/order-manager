@@ -10,6 +10,8 @@
     <table class="data-table">
       <tr><th>订单类型</th><th>订单数量</th><th>订单金额</th></tr>
       <tr v-for="t in stats" :key="t.name"><td>{{ t.name }}</td><td>{{ t.count }} 单</td><td>¥{{ (t.amount || 0).toLocaleString() }}</td></tr>
+      <tr v-for="t in stats" :key="t.name"><td>{{ t.name }}</td><td>{{ t.count }} 单</td><td>¥{{ t.amount.toLocaleString() }}</td></tr>
+      <tr v-if="stats.length===0"><td :colspan="3" style="text-align:center;padding:32px;color:var(--color-text-muted)">暂无数据</td></tr>
     </table>
   </div>
 </template>
@@ -37,6 +39,5 @@ export default {
       const x='<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="订单类型统计"><Table>'+d.map(r=>'<Row>'+r.map(c=>'<Cell><Data ss:Type="String">'+String(c).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</Data></Cell>').join('')+'</Row>').join('')+'</Table></Worksheet></Workbook>'
       const b=new Blob([x],{type:'application/vnd.ms-excel'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='订单类型统计_'+new Date().toISOString().slice(0,10)+'.xls';a.click();URL.revokeObjectURL(u)
     },
-  }
 }
-</script>
+}</script>

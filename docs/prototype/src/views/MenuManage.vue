@@ -36,6 +36,7 @@
           <button class="btn btn-text btn-sm" style="color:var(--color-danger)" @click="doDelete(m)">删除</button>
         </td>
       </tr>
+      <tr v-if="menus.length===0"><td :colspan="6" style="text-align:center;padding:32px;color:var(--color-text-muted)">暂无数据</td></tr>
     </table>
     <div class="pagination">
       <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-text-muted)">
@@ -242,13 +243,16 @@ export default {
     },
     canMoveUp(m) { const s=this.siblings(m); return s.indexOf(m)>0 },
     canMoveDown(m) { const s=this.siblings(m); return s.indexOf(m)<s.length-1 },
-    swapArray(arr, i, j) { const newArr = [...arr]; const t = newArr[i]; newArr[i] = newArr[j]; newArr[j] = t; return newArr },
-    moveUp(m) { const s = this.siblings(m); const i = s.indexOf(m); if (i <= 0) return; this.menus = this.swapArray(this.menus, this.menus.indexOf(m), this.menus.indexOf(s[i-1])); this.syncOrder() },
-    moveDown(m) { const s = this.siblings(m); const i = s.indexOf(m); if (i >= s.length - 1) return; this.menus = this.swapArray(this.menus, this.menus.indexOf(m), this.menus.indexOf(s[i+1])); this.syncOrder() },
-    syncOrder() {
-      const order = this.menus.filter(m => m.type==='level1').map(m => m.code)
-      localStorage.setItem('menu_order', JSON.stringify(order))
+    async moveUp(m) {
+      const s = this.siblings(m); const i = s.indexOf(m); if (i <= 0) return
+      await this.$api.put('/menus/' + m.code + '/sort', {direction:'up', sibling: s[i-1].code})
+      await this.loadData()
     },
-  }
+    async moveDown(m) {
+      const s = this.siblings(m); const i = s.indexOf(m); if (i >= s.length - 1) return
+      await this.$api.put('/menus/' + m.code + '/sort', {direction:'down', sibling: s[i+1].code})
+      await this.loadData()
+    },
+  },
 }
 </script>

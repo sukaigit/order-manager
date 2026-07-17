@@ -16,6 +16,7 @@
                 <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.remark }}</td>
                 <td><button class="btn btn-text btn-sm" @click="openEdit(r)">编辑</button><button class="btn btn-text btn-sm" @click="openPerm(r)">分配权限</button><button class="btn btn-text btn-sm" style="color:var(--color-danger)" @click="doDelete(r)">删除</button></td>
       </tr>
+      <tr v-if="roles.length===0"><td :colspan="6" style="text-align:center;padding:32px;color:var(--color-text-muted)">暂无数据</td></tr>
     </table>
     <div class="pagination">
       <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-text-muted)">
@@ -306,6 +307,6 @@ export default {
       this.selectedMenus = this.selectedMenus.filter(x => x !== c.code)
       c.funcs.forEach(f => { const i=this.selectedFuncs.indexOf(f.code); if(i>=0) this.selectedFuncs.splice(i,1) })
     },
-  }
+  },
 }
 </script>

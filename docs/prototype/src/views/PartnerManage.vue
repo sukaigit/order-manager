@@ -20,6 +20,7 @@
           <button class="btn btn-text btn-sm" style="color:var(--color-danger)" @click="doDelete(p)">删除</button>
         </td>
       </tr>
+      <tr v-if="partners.length===0"><td :colspan="6" style="text-align:center;padding:32px;color:var(--color-text-muted)">暂无数据</td></tr>
     </table>
     <div class="pagination">
       <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-text-muted)">
@@ -58,114 +59,168 @@
       <div class="modal" style="min-width:380px;text-align:center">
         <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:12px"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
         <div class="modal-title" style="text-align:center">确认删除</div>
-        <div style="font-size:14px;color:var(--color-text-secondary);margin-bottom:24px">
-          <div>{{ deleteMsg }}</div>
-          <div v-if="!deleteBlocked" style="margin-top:6px;font-size:13px">此操作不可撤销。</div>
-        </div>
+        <div style="font-size:14px;color:var(--color-text-secondary);margin-bottom:24px">确定要删除合作方「{{ deleteTarget?.name }}」吗？<br>此操作不可撤销。</div>
         <div class="modal-footer" style="justify-content:center">
           <button class="btn btn-secondary" @click="showDelete=false">取消</button>
-          <button v-if="!deleteBlocked" class="btn btn-danger" @click="confirmDelete">确认删除</button>
+          <button class="btn btn-danger" :disabled="deleting" @click="confirmDelete">确认删除</button>
         </div>
       </div>
     </div>
   </div>
 </template>
+
 <script>
-import api from '../utils/api'
 export default {
   data: () => ({
-    fCode:'', fName:'', fContact:'',
-    showForm:false, showDelete:false, formMode:'add', deleteTarget:null, deleteBlocked:false,
-    form:{code:'',name:'',contact:'',phone:'',remark:''},
-    page:1, pageSize:5,
-    partnerList:[], totalCount:0
+    partners: [],
+    totalCount: 0,
+    loading: false,
+    deleting: false,
+    page: 1,
+    pageSize: 5,
+    fCode: '',
+    fName: '',
+    fContact: '',
+    showForm: false,
+    showDelete: false,
+    formMode: 'add',
+    deleteTarget: null,
+    form: { code: '', name: '', contact: '', phone: '', remark: '' }
   }),
-  computed:{
-    totalPages(){return Math.ceil(this.totalCount/this.pageSize)||1},
-    startRecord(){return this.totalCount===0?0:(this.page-1)*this.pageSize+1},
-    endRecord(){return Math.min(this.page*this.pageSize,this.totalCount)},
-    pagedList(){
-      const s=(this.page-1)*this.pageSize
-      return this.partnerList.slice(s, s+this.pageSize)
+  computed: {
+    totalPages () {
+      return Math.ceil(this.totalCount / this.pageSize) || 1
     },
-    pageNumbers(){const tp=this.totalPages,cp=this.page;if(tp<=7)return Array.from({length:tp},(_,i)=>i+1);const p=[1];if(cp>3)p.push('...');for(let i=Math.max(2,cp-1);i<=Math.min(tp-1,cp+1);i++)p.push(i);if(cp<tp-2)p.push('...');p.push(tp);return p},
-    deleteMsg(){return this.deleteBlocked?'该合作方已有订单，不可删除':'确定要删除合作方「'+this.deleteTarget?.name+'」吗？'}
+    startRecord () {
+      return this.totalCount === 0 ? 0 : (this.page - 1) * this.pageSize + 1
+    },
+    endRecord () {
+      return Math.min(this.page * this.pageSize, this.totalCount)
+    },
+    pagedList () {
+      const s = (this.page - 1) * this.pageSize
+      return this.partners.slice(s, s + this.pageSize)
+    },
+    pageNumbers () {
+      const tp = this.totalPages
+      const cp = this.page
+      if (tp <= 7) return Array.from({ length: tp }, (_, i) => i + 1)
+      const p = [1]
+      if (cp > 3) p.push('...')
+      for (let i = Math.max(2, cp - 1); i <= Math.min(tp - 1, cp + 1); i++) p.push(i)
+      if (cp < tp - 2) p.push('...')
+      p.push(tp)
+      return p
+    }
   },
-  mounted(){ this.loadData() },
-  methods:{
-    async loadData(){
+  mounted () {
+    this.loadData()
+  },
+  methods: {
+    async loadData () {
+      this.loading = true
       try {
         const params = { page: this.page, pageSize: this.pageSize }
         if (this.fCode) params.code = this.fCode
         if (this.fName) params.name = this.fName
         if (this.fContact) params.contact = this.fContact
-        const res = await api.get('/partners', { params })
-        const data = res.data || res
-        this.partnerList = data.list || data
-        this.totalCount = data.total || this.partnerList.length
+        const res = await window.api.get('/partners', { params })
+        const body = res.data || res
+        this.partners = body.list || body.data?.list || []
+        this.totalCount = body.total || body.data?.total || 0
       } catch (e) {
-        this.$emit('toast', { msg: '加载合作方失败：' + e.message, type: 'error' })
+        this.$emit('toast', { msg: '加载合作方失败：' + (e.response?.data?.msg || e.message), type: 'error' })
+      } finally {
+        this.loading = false
       }
     },
-    query(){ this.page=1; this.loadData() },
-    resetQuery(){ this.fCode=''; this.fName=''; this.fContact=''; this.page=1; this.loadData() },
-    openAdd(){this.formMode='add';this.form={code:'',name:'',contact:'',phone:'',remark:''};this.showForm=true},
-    openEdit(p){this.formMode='edit';this.form={...p};this.showForm=true},
-    async saveForm(){
-      if(!this.form.name||!this.form.contact||!this.form.phone){this.$emit('toast',{msg:'请填写必填信息',type:'warning'});return}
-      if(!/^1\d{10}$/.test(this.form.phone)){this.$emit('toast',{msg:'请输入正确的11位手机号',type:'warning'});return}
+    query () {
+      this.page = 1
+      this.loadData()
+    },
+    resetQuery () {
+      this.fCode = ''
+      this.fName = ''
+      this.fContact = ''
+      this.page = 1
+      this.loadData()
+    },
+    openAdd () {
+      this.formMode = 'add'
+      this.form = { code: '', name: '', contact: '', phone: '', remark: '' }
+      this.showForm = true
+    },
+    openEdit (p) {
+      this.formMode = 'edit'
+      this.form = { ...p }
+      this.showForm = true
+    },
+    async saveForm () {
+      if (!this.form.name || !this.form.contact || !this.form.phone) {
+        this.$emit('toast', { msg: '请填写必填信息', type: 'warning' })
+        return
+      }
+      if (!/^1\d{10}$/.test(this.form.phone)) {
+        this.$emit('toast', { msg: '请输入正确的11位手机号', type: 'warning' })
+        return
+      }
+      const data = { name: this.form.name, contact: this.form.contact, phone: this.form.phone, remark: this.form.remark }
       try {
-        const payload = { name: this.form.name, contact: this.form.contact, phone: this.form.phone, remark: this.form.remark }
         if (this.formMode === 'add') {
-          await api.post('/partners', payload)
+          await window.api.post('/partners', data)
           this.$emit('toast', { msg: '新增合作方成功', type: 'success' })
         } else {
-          await api.put('/partners/' + this.form.id, payload)
+          await window.api.put('/partners/' + this.form.id, data)
           this.$emit('toast', { msg: '编辑成功', type: 'success' })
         }
         this.showForm = false
-        this.loadData()
+        await this.loadData()
       } catch (e) {
-        this.$emit('toast', { msg: '保存失败：' + e.message, type: 'error' })
+        this.$emit('toast', { msg: '操作失败：' + (e.response?.data?.msg || '服务器错误'), type: 'error' })
       }
     },
-    async doDelete(p){
+    doDelete (p) {
       this.deleteTarget = p
-      this.deleteBlocked = false
       this.showDelete = true
     },
-    async confirmDelete(){
+    async confirmDelete () {
       if (!this.deleteTarget) return
+      this.deleting = true
       try {
-        await api.delete('/partners/' + this.deleteTarget.id)
+        await window.api.delete('/partners/' + this.deleteTarget.id)
         this.$emit('toast', { msg: '已删除合作方「' + this.deleteTarget.name + '」', type: 'success' })
         this.showDelete = false
         this.deleteTarget = null
-        this.loadData()
+        await this.loadData()
       } catch (e) {
-        if (e.message && (e.message.includes('400') || e.message.includes('订单'))) {
-          this.deleteBlocked = true
-        } else {
-          this.$emit('toast', { msg: '删除失败：' + e.message, type: 'error' })
-          this.showDelete = false
-          this.deleteTarget = null
-        }
+        const msg = e.response?.data?.msg || e.message
+        this.$emit('toast', { msg: '删除失败：' + msg, type: 'error' })
+      } finally {
+        this.deleting = false
       }
     },
-    async doExport(){
+    doExport () {
       try {
-        const res = await api.get('/partners/export', { responseType: 'blob' })
-        const url = URL.createObjectURL(new Blob([res], { type: 'application/vnd.ms-excel' }))
+        const d = this.partners.map(p => [p.code, p.name, p.contact, p.phone, p.remark])
+        d.unshift(['合作方编号', '合作方名称', '联系人', '联系电话', '备注'])
+        const rows = d.map(r =>
+          '<Row>' + r.map(c =>
+            '<Cell><Data ss:Type="String">' + String(c == null ? '' : c).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</Data></Cell>'
+          ).join('') + '</Row>'
+        ).join('')
+        const xml = '<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="合作方列表"><Table>' + rows + '</Table></Worksheet></Workbook>'
+        const b = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' })
+        const u = URL.createObjectURL(b)
         const a = document.createElement('a')
-        a.href = url
+        a.href = u
         a.download = '合作方列表_' + new Date().toISOString().slice(0, 10) + '.xls'
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-        this.$emit('toast', { msg: '导出成功', type: 'success' })
+        URL.revokeObjectURL(u)
+        this.$emit('toast', { msg: '导出成功：' + d.length + ' 条记录', type: 'success' })
       } catch (e) {
-        this.$emit('toast', { msg: '导出失败：' + e.message, type: 'error' })
+        this.$emit('toast', { msg: '导出失败：' + (e.response?.data?.msg || e.message), type: 'error' })
       }
     }
   }

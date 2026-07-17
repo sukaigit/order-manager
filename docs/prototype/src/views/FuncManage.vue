@@ -18,6 +18,7 @@
                 <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.remark }}</td>
                 <td><button class="btn btn-text btn-sm" @click="openEdit(f)">编辑</button><button class="btn btn-text btn-sm" style="color:var(--color-danger)" @click="doDelete(f)">删除</button></td>
       </tr>
+      <tr v-if="funcs.length===0"><td :colspan="6" style="text-align:center;padding:32px;color:var(--color-text-muted)">暂无数据</td></tr>
     </table>
     <div class="pagination">
       <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-text-muted)">
@@ -80,7 +81,7 @@ export default {
     form:{code:'',name:'',menu:'',perm:'',remark:''},
     page: 1, pageSize: 5, deleteTarget: null,
     funcs: [],
-    menus: []
+    menus: [],
   }),
   computed:{
     totalPages() { return Math.ceil(this.funcList.length / this.pageSize) || 1 },
@@ -181,6 +182,6 @@ export default {
       }
       this.showDelete=false; this.deleteTarget=null
     },
-  }
+  },
 }
 </script>
