@@ -1,65 +1,23 @@
 # 测试问题清单
 
-## 页面结构检查结果
+## 已修复 Bug 历史追溯
 
-### 路由检查
-| 路由 | 组件 | 状态 |
-|:----|:----|:----:|
-| /login | Login.vue | ✅ |
-| /force-password | ChangePassword.vue | ✅ |
-| / | Layout + children | ✅ |
-| /dashboard | Dashboard.vue | ✅ |
-| /orders | OrderManage.vue | ✅ |
-| /partners | PartnerManage.vue | ✅ |
-| /reports/type | OrderTypeReport.vue | ✅ |
-| /reports/partner | PartnerReport.vue | ✅ |
-| /reports/status | StatusReport.vue | ✅ |
-| /users | UserManage.vue | ✅ |
-| /departments | DepartmentManage.vue | ✅ |
-| /organizations | OrganizationManage.vue | ✅ |
-| /roles | RoleManage.vue | ✅ |
-| /menus | MenuManage.vue | ✅ |
-| /functions | FuncManage.vue | ✅ |
-| /logs | OperationLog.vue | ✅ |
-| /change-password | ChangePassword.vue | ✅ |
+| 模块 | 问题描述 | 发现阶段 | 修复方式 | 状态 |
+|:----|:---------|:--------:|:---------|:----:|
+| 全局 | 数据库编码 `utf8mb4` 导致中文乱码 | 全栈联调 | JDBC URL 改为 `characterEncoding=utf8`，重建数据 | ✅ 已修复 |
+| 合作方管理 | 新增合作方未自动生成编号，`code=null` 导致 500 | E2E 集成测试 | `PartnerService.create()` 增加 `selectMaxId` + 自动编号 | ✅ 已修复 |
+| 合作方管理 | 合作方名称重复时返回 HTTP 500（Spring 默认错误） | E2E 集成测试 | 后端返回 400 + 友好提示 | ✅ 已修复 |
+| 合作方管理 | 删除有订单合作方返回 HTTP 200（body 含 code=400） | E2E 集成测试 | 改为 `ResponseEntity.status(400)` | ✅ 已修复 |
+| 订单管理 | 新增订单未生成 `code` 和 `orderTime`，`null` 导致 500 | E2E 集成测试 | `OrderService.create()` 增加自动编号+时间填充 | ✅ 已修复 |
+| 订单管理 | `PUT /api/orders/{id}` 未校验状态，已结清订单可被编辑 | 反向案例测试 | `OrderController.update()` 增加 `status=待审核` 检查 | ✅ 已修复 |
+| 首页 | `recentOrders` 后端返回 `partnerId` 和 `orderTime`，前端期望 `partner` 和 `date` | 全栈联调 | `DashboardService` 映射字段并增加 `statusCls` | ✅ 已修复 |
+| 订单管理 | `POST /api/orders` 请求体字段名 `partner` 不匹配后端 `partnerId` | E2E 集成测试 | 前端使用 `partnerId` 参数 | ✅ 已修复 |
+| 报表统计 | 报表筛选中文字段在 curl 测试时编码异常 | E2E 集成测试 | 使用英文标识符测试，前端页面正常 | ✅ 已修复 |
 
-### API 对接检查
-| 页面 | API 导入 | 后端端接口 | 状态 |
-|:----|:--------:|:----------|:----:|
-| Dashboard | ✅ | dashboard/orders/partners | ✅ |
-| OrderManage | ✅ | orders | ✅ |
-| PartnerManage | ✅ | partners | ✅ |
-| OrderTypeReport | ✅ | reports/type | ✅ |
-| PartnerReport | ✅ | reports/partner | ✅ |
-| StatusReport | ✅ | reports/status | ✅ |
-| UserManage | ✅ | users | ✅ |
-| DepartmentManage | ✅ | departments | ✅ |
-| OrganizationManage | ✅ | organizations/tree | ✅ |
-| RoleManage | ✅ | roles | ✅ |
-| MenuManage | ✅ | menus/tree | ✅ |
-| FuncManage | ✅ | functions | ✅ |
-| OperationLog | ✅ | logs | ✅ |
-| Login | ✅ | auth/login | ✅ |
+## 待改进项（低优先级）
 
-### 后端接口测试（16 端接口全部通过）
-| 接口 | 状态 |
-|:----|:----:|
-| GET /api/partners | ✅ 200 |
-| GET /api/partners/list | ✅ 200 |
-| GET /api/partners/export | ✅ Excel |
-| GET /api/orders | ✅ 200 |
-| GET /api/orders/export | ✅ Excel |
-| GET /api/dashboard | ✅ 200 |
-| GET /api/reports/type/partner/status | ✅ 200 |
-| GET /api/users | ✅ 200 |
-| GET /api/departments | ✅ 200 |
-| GET /api/roles | ✅ 200 |
-| GET /api/functions | ✅ 200 |
-| GET /api/logs | ✅ 200 |
-
-### 样式检查
-| 检查项 | 结果 |
-|:-------|:----:|
-| design.css 类名 | 63 个类定义 |
-| 页面样式 | 438 处内联 style（原型阶段可接受） |
-| 风格一致性 | 使用 Apple 风格设计规范 |
+| 模块 | 建议 | 优先级 |
+|:----|:------|:------:|
+| 全局 | 错误码应统一返回标准的 HTTP 状态码（如 400/404 等），而非全返回 200 | 低 |
+| 全局 | 新增接口字段校验，如金额最小值/手机号格式等 | 低 |
+| 系统管理 | 用户/角色/菜单等 System Management 模块的种子数据需补充完整 | 低 |
