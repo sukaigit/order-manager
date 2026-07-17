@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 盒子/包裹 - 代表供应商/货物 -->
+  <rect x="2" y="14" width="13" height="14" rx="2.5" stroke="#0066cc" stroke-width="1.5"/>
+  <path d="M2 17h13" stroke="#0066cc" stroke-width="1.5"/>
+  <path d="M8.5 14v6.5" stroke="#0066cc" stroke-width="1.5"/>
+  <path d="M5 18.5l3.5 3 3.5-3" stroke="#0066cc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 对勾圆圈 - 代表订单确认 -->
+  <circle cx="22" cy="10" r="8" stroke="#30d158" stroke-width="1.5" fill="#e8f8ee"/>
+  <path d="M18 10l3 3 5-5" stroke="#30d158" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 连接线 - 代表供应链 -->
+  <path d="M15 21l4-11" stroke="#c7d2fe" stroke-width="1.2" stroke-dasharray="2 2"/>
+</svg>
