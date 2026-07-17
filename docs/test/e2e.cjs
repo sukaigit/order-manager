@@ -1,7 +1,12 @@
-// Playwright 用户测试 — 对应 docs/test/user-test-cases.md 48 条案例
+// ===== Playwright 用户测试 — 对应 docs/test/user-test-cases.md 50 条案例
 const { chromium } = require('playwright');
 const BASE = 'http://localhost:5195';
-const L = ms => new Promise(r => setTimeout(r, ms));
+
+// DEMO_MODE = true 时慢速演示，false 时正常速度
+const DEMO_MODE = false;
+const SLOWMO = DEMO_MODE ? 300 : 0;
+const FILL_METHOD = DEMO_MODE ? 'type' : 'fill';
+const L = ms => new Promise(r => setTimeout(r, DEMO_MODE ? ms : ms/3));
 const esc = async p => {
   for(let i=0;i<3;i++){await p.keyboard.press('Escape');await L(200);}
   await p.evaluate(() => document.querySelectorAll('.modal-overlay,.modal,.toast').forEach(el => el.remove()));
@@ -9,7 +14,7 @@ const esc = async p => {
 };
 
 (async () => {
-  const b = await chromium.launch({ headless: false, slowMo: 300 });
+  const b = await chromium.launch({ headless: false, slowMo: SLOWMO });
   const ctx = await b.newContext({viewport:{width:1400,height:900}});
   const p = await ctx.newPage();
   let pass=0,fail=0; const issues=[];
