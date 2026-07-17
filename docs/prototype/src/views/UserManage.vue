@@ -12,9 +12,10 @@
       <div style="flex:1"></div>
       <button class="btn btn-primary" @click="openAdd">新增用户</button>
     </div>
-    <table class="data-table">
+    <div v-if="loading" style="text-align:center;padding:40px;color:var(--color-text-muted)">加载中...</div>
+    <table class="data-table" v-else>
       <tr><th>用户编号</th><th>用户名</th><th>角色</th><th>部门</th><th>机构</th><th>状态</th><th>创建时间</th><th>备注</th><th>操作</th></tr>
-      <tr v-for="u in pagedList" :key="u.code">
+      <tr v-for="u in pagedList" :key="u.id || u.code">
         <td style="color:var(--color-text-muted);font-size:12px">{{ u.code }}</td><td>{{ u.name }}</td>
         <td>{{ u.role }}</td>
         <td style="font-size:13px">{{ u.dept }}</td>
@@ -131,28 +132,17 @@
   </div>
 </template>
 <script>
-import { getDepts } from '../store/deptStore.js'
+import api from '../utils/api'
 export default {
   data: () => ({
+    loading: false,
     fName:'', fCode:'', fRole:'全部', fDept:'全部', fOrg:'全部', fStatus:'全部',
     showForm:false, showResetPwd:false, showDelete:false, formMode:'add',
     form:{code:'',name:'',role:'',active:true,locked:false,remark:'',dept:'',org:''},
     resetPwdTarget: null, deleteTarget: null,
     orgOpen: false, orgSearch: '', orgExpanded: {},
     page: 1, pageSize: 5,
-    roles: ['系统管理员','操作员','审批员','普通用户'],
-    users:[
-      {code:'USER_ADMIN',name:'admin',role:'系统管理员',dept:'研发部',org:'HQ001',active:true,locked:false,date:'2024-01-01 09:00:00'},
-      {code:'USER_ZHANGSAN',name:'zhangsan',role:'普通用户',dept:'研发部',org:'BJ001',active:true,locked:false,date:'2024-01-15 10:30:00'},
-      {code:'USER_LISI',name:'lisi',role:'普通用户',dept:'销售部',org:'SH001',active:true,locked:false,date:'2024-02-01 14:15:00'},
-      {code:'USER_WANGWU',name:'wangwu',role:'普通用户',dept:'财务部',org:'GZ001',active:false,locked:true,date:'2024-02-10 08:45:00'},
-      {code:'USER_ADMIN2',name:'admin2',role:'系统管理员',dept:'研发部',org:'HQ001',active:true,locked:false,date:'2024-03-01 16:20:00'},
-      {code:'USER_ZHAOLIU',name:'zhaoliu',role:'普通用户',dept:'人事部',org:'BJ011',active:true,locked:false,date:'2024-03-15 11:00:00'},
-      {code:'USER_SUNQI',name:'sunqi',role:'普通用户',dept:'市场部',org:'SH011',active:true,locked:false,date:'2024-04-01 09:30:00'},
-      {code:'USER_ZHOUBA',name:'zhouba',role:'普通用户',dept:'售后部',org:'GZ011',active:false,locked:false,date:'2024-04-10 13:45:00'},
-      {code:'USER_ADMIN3',name:'admin3',role:'系统管理员',dept:'行政部',org:'HQ001',active:true,locked:false,date:'2024-05-01 10:00:00'},
-      {code:'USER_WUJIU',name:'wujiu',role:'普通用户',dept:'物流部',org:'BJ021',active:true,locked:false,date:'2024-05-15 15:30:00'},
-    ]
+    users: [], roles: [], deptList: [], orgList: []
   }),
   computed:{
     totalPages() { return Math.ceil(this.filteredList.length / this.pageSize) || 1 },
@@ -186,28 +176,12 @@ export default {
       pages.push(tp)
       return pages
     },
-    deptList() { return getDepts() },
-    orgList() {
-      return [
-        {code:'HQ001',label:'总行',level:0,parent:''},
-        {code:'BJ001',label:'北京分行',level:1,parent:'HQ001'},
-        {code:'SH001',label:'上海分行',level:1,parent:'HQ001'},
-        {code:'GZ001',label:'广州分行',level:1,parent:'HQ001'},
-        {code:'BJ011',label:'朝阳支行',level:2,parent:'BJ001'},
-        {code:'BJ021',label:'海淀支行',level:2,parent:'BJ001'},
-        {code:'BJ0111',label:'东城二级支行',level:3,parent:'BJ011'},
-        {code:'SH011',label:'浦东支行',level:2,parent:'SH001'},
-        {code:'SH021',label:'静安支行',level:2,parent:'SH001'},
-        {code:'GZ011',label:'天河支行',level:2,parent:'GZ001'},
-      ]
-    },
     orgName() {
       const o = this.orgList.find(x => x.code === this.form.org)
       return o ? o.label : ''
     },
     orgTree() {
       const search = this.orgSearch ? this.orgSearch.toLowerCase() : ''
-      // Find matching codes + ancestors for search
       const matchCodes = new Set()
       if (search) {
         for (const o of this.orgList) {
@@ -233,7 +207,31 @@ export default {
       return build('', 0)
     }
   },
+  mounted() {
+    this.loadData()
+  },
   methods:{
+    async loadData() {
+      this.loading = true
+      try {
+        const [usersRes, deptRes, orgRes, roleRes] = await Promise.all([
+          api.get('/users'),
+          api.get('/departments/list'),
+          api.get('/organizations/tree'),
+          api.get('/roles')
+        ])
+        this.users = (usersRes.data?.list || usersRes.data || usersRes || [])
+        this.deptList = (deptRes.data?.list || deptRes.data || deptRes || [])
+        const orgData = orgRes.data?.list || orgRes.data || orgRes || []
+        this.orgList = orgData
+        const roleData = roleRes.data?.list || roleRes.data || roleRes || []
+        this.roles = roleData.map(r => r.name)
+      } catch (e) {
+        this.$emit('toast', {msg: '加载数据失败: ' + (e.message || ''), type: 'error'})
+      } finally {
+        this.loading = false
+      }
+    },
     query(){this.page=1},
     resetQuery(){this.fName='';this.fCode='';this.fRole='全部';this.fDept='全部';this.fOrg='全部';this.fStatus='全部';this.page=1},
     openAdd(){this.formMode='add';this.form={code:'',name:'',role:'',active:true,locked:false,remark:'',dept:'',org:''};this.showForm=true},
@@ -241,25 +239,70 @@ export default {
     selectOrg(o){this.form.org=o.code},
     orgLabel(code){const o=this.orgList.find(x=>x.code===code);return o?o.label:'—'},
     toggleOrgTree(o){this.orgExpanded[o.code]=!this.orgExpanded[o.code]},
-    saveForm(){
+    async saveForm(){
       if(!this.form.name||!this.form.role||!this.form.dept){this.$emit('toast',{msg:'请填写完整信息',type:'warning'});return}
-      if(!this.form.code) this.form.code = 'USER_' + this.form.name.toUpperCase()
-      if(this.formMode==='add'){this.users.push({...this.form,date:new Date().toISOString().slice(0,19).replace('T',' ')});this.$emit('toast',{msg:'新增用户成功，默认密码 Uu888888!（首次登录需修改）',type:'success'})}
-      else{const i=this.users.findIndex(x=>x.code===this.form.code);if(i>=0)this.users.splice(i,1,{...this.form});this.$emit('toast',{msg:'编辑成功',type:'success'})}
+      try {
+        if(this.formMode==='add'){
+          await api.post('/users', { name: this.form.name, role: this.form.role, dept: this.form.dept, org: this.form.org, active: this.form.active })
+          this.$emit('toast',{msg:'新增用户成功，默认密码 Uu888888!（首次登录需修改）',type:'success'})
+          await this.loadData()
+        } else {
+          const id = this.form.id || this.form.code
+          await api.put('/users/' + id, { name: this.form.name, role: this.form.role, dept: this.form.dept, org: this.form.org, active: this.form.active, remark: this.form.remark })
+          this.$emit('toast',{msg:'编辑成功',type:'success'})
+          await this.loadData()
+        }
+      } catch (e) {
+        this.$emit('toast',{msg:'操作失败: ' + (e.message || ''),type:'error'})
+      }
       this.showForm=false
     },
-    toggleStatus(u){u.active=!u.active;this.$emit('toast',{msg:u.active?'已启用':'已禁用',type:'success'})},
-    unlockUser(u){u.locked=false;u.active=true;this.$emit('toast',{msg:'用户「'+u.name+'」已解锁',type:'success'})},
+    async toggleStatus(u){
+      try {
+        const id = u.id || u.code
+        if (u.active) {
+          await api.put('/users/' + id + '/lock?locked=true')
+        } else {
+          await api.put('/users/' + id + '/lock?locked=false')
+        }
+        u.active = !u.active
+        this.$emit('toast',{msg:u.active?'已启用':'已禁用',type:'success'})
+      } catch (e) {
+        this.$emit('toast',{msg:'操作失败: ' + (e.message || ''),type:'error'})
+      }
+    },
+    async unlockUser(u){
+      try {
+        const id = u.id || u.code
+        await api.put('/users/' + id + '/lock?locked=false')
+        u.locked=false; u.active=true
+        this.$emit('toast',{msg:'用户「'+u.name+'」已解锁',type:'success'})
+      } catch (e) {
+        this.$emit('toast',{msg:'操作失败: ' + (e.message || ''),type:'error'})
+      }
+    },
     openResetPwd(u){this.resetPwdTarget=u;this.showResetPwd=true},
-    confirmResetPwd(){
-      this.$emit('toast',{msg:'用户「'+this.resetPwdTarget.name+'」密码已重置为 Uu888888!，下次登录需修改',type:'success'})
+    async confirmResetPwd(){
+      try {
+        const id = this.resetPwdTarget.id || this.resetPwdTarget.code
+        await api.put('/users/' + id + '/reset-pwd')
+        this.$emit('toast',{msg:'用户「'+this.resetPwdTarget.name+'」密码已重置为 Uu888888!，下次登录需修改',type:'success'})
+      } catch (e) {
+        this.$emit('toast',{msg:'操作失败: ' + (e.message || ''),type:'error'})
+      }
       this.showResetPwd=false; this.resetPwdTarget=null
     },
     doDelete(u){this.deleteTarget=u;this.showDelete=true},
-    confirmDelete(){
+    async confirmDelete(){
       if(this.deleteTarget){
-        this.users=this.users.filter(x=>x.code!==this.deleteTarget.code)
-        this.$emit('toast',{msg:'已删除用户「'+this.deleteTarget.name+'」',type:'success'})
+        try {
+          const id = this.deleteTarget.id || this.deleteTarget.code
+          await api.delete('/users/' + id)
+          this.users=this.users.filter(x=>(x.id||x.code)!==id)
+          this.$emit('toast',{msg:'已删除用户「'+this.deleteTarget.name+'」',type:'success'})
+        } catch (e) {
+          this.$emit('toast',{msg:'删除失败: ' + (e.message || ''),type:'error'})
+        }
       }
       this.showDelete=false; this.deleteTarget=null
     },

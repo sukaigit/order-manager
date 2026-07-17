@@ -35,22 +35,33 @@
   </div>
 </template>
 <script>
+import api from '../utils/api'
 export default {
   data: () => ({
     form: { username: '', password: '', captcha: '' },
     captchaCode: '', errorMsg: '', locked: false,
-    users: [
-      { name:'admin', pwd:'Uu888888!', role:'系统管理员', active:true, locked:false, failCount:0, firstLogin:false },
-      { name:'zhangsan', pwd:'Uu888888!', role:'普通用户', active:true, locked:false, failCount:0, firstLogin:true },
-      { name:'lisi', pwd:'Uu888888!', role:'普通用户', active:true, locked:false, failCount:0, firstLogin:false },
-      { name:'wangwu', pwd:'Uu888888!', role:'普通用户', active:true, locked:true, failCount:0, firstLogin:false },
-      { name:'zhouba', pwd:'Uu888888!', role:'普通用户', active:false, locked:false, failCount:0, firstLogin:false },
-      { name:'admin2', pwd:'Uu888888!', role:'系统管理员', active:true, locked:false, failCount:0, firstLogin:true },
-    ]
+    captchaId: ''
   }),
   mounted() { this.refreshCaptcha() },
   methods: {
-    refreshCaptcha() {
+    async refreshCaptcha() {
+      try {
+        const res = await api.get('/auth/captcha')
+        this.captchaId = res.captchaId || ''
+        this.captchaCode = res.code || ''
+        if (res.image) {
+          const cvs = this.$refs.captchaCanvas
+          if (cvs) {
+            const ctx = cvs.getContext('2d')
+            const img = new Image()
+            img.onload = () => { ctx.drawImage(img, 0, 0) }
+            img.src = 'data:image/png;base64,' + res.image
+          }
+          return
+        }
+      } catch (e) {
+        // fallback to client-side captcha if API unavailable
+      }
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
       let code = ''
       for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)]
@@ -81,7 +92,7 @@ export default {
       }
       ctx.strokeStyle = '#d0d5ff'; ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, w-1, h-1)
     },
-    login() {
+    async login() {
       this.errorMsg = ''
       if (!this.form.username || !this.form.password) {
         this.errorMsg = '请输入用户名和密码'; return
@@ -89,38 +100,33 @@ export default {
       if (!this.form.captcha) {
         this.errorMsg = '请输入验证码'; return
       }
-      if (this.form.captcha.toUpperCase() !== this.captchaCode) {
-        this.errorMsg = '验证码错误'
-        this.form.captcha = ''; this.refreshCaptcha(); return
-      }
-      const user = this.users.find(u => u.name === this.form.username)
-      if (!user) {
-        this.errorMsg = '用户名或密码错误'
-        this.form.password = ''; this.form.captcha = ''; this.refreshCaptcha(); return
-      }
-      if (user.locked) {
-        this.locked = true; return
-      }
-      if (!user.active) {
-        this.errorMsg = '账户已禁用，请联系系统管理员启用'
-        this.form.password = ''; this.form.captcha = ''; this.refreshCaptcha(); return
-      }
-      if (this.form.password !== user.pwd) {
-        user.failCount++
-        const remain = 5 - user.failCount
-        if (remain <= 0) {
-          user.locked = true
+      try {
+        const res = await api.post('/auth/login', {
+          name: this.form.username,
+          password: this.form.password,
+          captcha: this.form.captcha
+        })
+        if (res.token) {
+          localStorage.setItem('token', res.token)
+        }
+        if (res.user) {
+          localStorage.setItem('user', JSON.stringify(res.user))
+        }
+        if (res.firstLogin) {
+          this.$router.push('/force-password?force=true')
+        } else {
+          this.$router.push('/dashboard')
+        }
+      } catch (e) {
+        const msg = e.message || '登录失败'
+        if (msg.includes('锁定') || msg.includes('locked')) {
           this.locked = true
         } else {
-          this.errorMsg = `密码错误，还剩 ${remain} 次机会`
+          this.errorMsg = msg
         }
-        this.form.password = ''; this.form.captcha = ''; this.refreshCaptcha(); return
-      }
-      user.failCount = 0
-      if (user.firstLogin) {
-        this.$router.push('/force-password?force=true')
-      } else {
-        this.$router.push('/dashboard')
+        this.form.password = ''
+        this.form.captcha = ''
+        this.refreshCaptcha()
       }
     }
   }

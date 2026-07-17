@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ordermanager.mapper.LogMapper">
+
+    <resultMap id="BaseMap" type="OperationLog">
+        <id column="id" property="id"/>
+        <result column="user" property="user"/>
+        <result column="action" property="action"/>
+        <result column="target" property="target"/>
+        <result column="ip" property="ip"/>
+        <result column="time" property="time"/>
+    </resultMap>
+
+    <sql id="BaseColumns">id, user, action, target, ip, time</sql>
+
+    <sql id="WhereClause">
+        <where>
+            <if test="user != null and user != ''">AND user LIKE CONCAT('%', #{user}, '%')</if>
+            <if test="action != null and action != ''">AND action = #{action}</if>
+            <if test="target != null and target != ''">AND target LIKE CONCAT('%', #{target}, '%')</if>
+        </where>
+    </sql>
+
+    <select id="selectList" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_operation_log
+        <include refid="WhereClause"/>
+        ORDER BY id DESC LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectCount" resultType="long">
+        SELECT COUNT(*) FROM tb_operation_log
+        <include refid="WhereClause"/>
+    </select>
+
+    <select id="selectById" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_operation_log WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_operation_log (user, action, target, ip, time)
+        VALUES (#{user}, #{action}, #{target}, #{ip}, #{time})
+    </insert>
+</mapper>

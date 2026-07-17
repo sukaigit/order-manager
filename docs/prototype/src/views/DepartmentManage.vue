@@ -8,9 +8,10 @@
       <div style="flex:1"></div>
       <button class="btn btn-primary" @click="openAdd">新增部门</button>
     </div>
-    <table class="data-table">
+    <div v-if="loading" style="text-align:center;padding:40px;color:var(--color-text-muted)">加载中...</div>
+    <table class="data-table" v-else>
       <tr><th>部门编号</th><th>部门名称</th><th>备注</th><th>操作</th></tr>
-      <tr v-for="d in pagedList" :key="d.code">
+      <tr v-for="d in pagedList" :key="d.id || d.code">
         <td style="color:var(--color-text-muted);font-size:12px">{{ d.code }}</td><td>{{ d.name }}</td>
         <td>{{ d.remark }}</td>
         <td><button class="btn btn-text btn-sm" @click="openEdit(d)">编辑</button><button class="btn btn-text btn-sm" style="color:var(--color-danger)" @click="doDelete(d)">删除</button></td>
@@ -67,17 +68,19 @@
   </div>
 </template>
 <script>
-import { getDepts, addDept, updateDept, deleteDept } from '../store/deptStore.js'
+import api from '../utils/api'
 export default {
   data: () => ({
+    loading: false,
     fName:'', fCode:'', showForm:false, showDelete:false, formMode:'add',
     form:{code:'',name:'',remark:''}, deleteTarget: null,
     page: 1, pageSize: 5,
+    departments: []
   }),
   computed:{
     totalPages() { return Math.ceil(this.filteredList.length / this.pageSize) || 1 },
     filteredList() {
-      return getDepts().filter(d => {
+      return this.departments.filter(d => {
         if(this.fName && !d.name.includes(this.fName)) return false
         if(this.fCode && !d.code.includes(this.fCode.toUpperCase())) return false
         return true
@@ -99,21 +102,53 @@ export default {
       return pages
     }
   },
+  mounted() { this.loadData() },
   methods:{
+    async loadData() {
+      this.loading = true
+      try {
+        const res = await api.get('/departments')
+        this.departments = (res.data?.list || res.data || res || [])
+      } catch (e) {
+        this.$emit('toast',{msg:'加载数据失败: ' + (e.message || ''),type:'error'})
+      } finally {
+        this.loading = false
+      }
+    },
     query(){this.page=1},
     resetQuery(){this.fName='';this.fCode='';this.page=1},
     openAdd(){this.formMode='add';this.form={code:'',name:'',remark:''};this.showForm=true},
     openEdit(d){this.formMode='edit';this.form={...d};this.showForm=true},
-    saveForm(){
+    async saveForm(){
       if(!this.form.name){this.$emit('toast',{msg:'请输入部门名称',type:'warning'});return}
-      if(!this.form.code) this.form.code = 'DEPT_' + this.form.name.toUpperCase().replace(/[^A-Z]/g,'')
-      if(this.formMode==='add'){addDept({...this.form});this.$emit('toast',{msg:'新增部门成功',type:'success'})}
-      else{updateDept(this.form.code, {...this.form});this.$emit('toast',{msg:'编辑成功',type:'success'})}
-      this.showForm=false
+      try {
+        if(this.formMode==='add'){
+          await api.post('/departments', {code: this.form.code, name: this.form.name, remark: this.form.remark})
+          this.$emit('toast',{msg:'新增部门成功',type:'success'})
+        } else {
+          const id = this.form.id || this.form.code
+          await api.put('/departments/' + id, {code: this.form.code, name: this.form.name, remark: this.form.remark})
+          this.$emit('toast',{msg:'编辑成功',type:'success'})
+        }
+        this.showForm=false
+        await this.loadData()
+      } catch (e) {
+        this.$emit('toast',{msg:'操作失败: ' + (e.message || ''),type:'error'})
+        this.showForm=false
+      }
     },
     doDelete(d){this.deleteTarget=d;this.showDelete=true},
-    confirmDelete(){
-      if(this.deleteTarget){deleteDept(this.deleteTarget.code);this.$emit('toast',{msg:'已删除部门「'+this.deleteTarget.name+'」',type:'success'})}
+    async confirmDelete(){
+      if(this.deleteTarget){
+        try {
+          const id = this.deleteTarget.id || this.deleteTarget.code
+          await api.delete('/departments/' + id)
+          this.departments=this.departments.filter(x=>(x.id||x.code)!==id)
+          this.$emit('toast',{msg:'已删除部门「'+this.deleteTarget.name+'」',type:'success'})
+        } catch (e) {
+          this.$emit('toast',{msg:'删除失败: ' + (e.message || ''),type:'error'})
+        }
+      }
       this.showDelete=false; this.deleteTarget=null
     },
   }

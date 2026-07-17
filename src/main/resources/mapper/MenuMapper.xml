@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ordermanager.mapper.MenuMapper">
+
+    <resultMap id="BaseMap" type="Menu">
+        <id column="id" property="id"/>
+        <result column="code" property="code"/>
+        <result column="label" property="label"/>
+        <result column="route" property="route"/>
+        <result column="type" property="type"/>
+        <result column="parent" property="parent"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="BaseColumns">id, code, label, route, type, parent, remark, create_time</sql>
+
+    <sql id="WhereClause">
+        <where>
+            <if test="code != null and code != ''">AND code LIKE CONCAT('%', #{code}, '%')</if>
+            <if test="label != null and label != ''">AND label LIKE CONCAT('%', #{label}, '%')</if>
+            <if test="route != null and route != ''">AND route LIKE CONCAT('%', #{route}, '%')</if>
+            <if test="type != null and type != ''">AND type = #{type}</if>
+        </where>
+    </sql>
+
+    <select id="selectList" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_menu
+        <include refid="WhereClause"/>
+        ORDER BY id
+    </select>
+
+    <select id="selectById" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_menu WHERE id = #{id}
+    </select>
+
+    <select id="selectByCode" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_menu WHERE code = #{code}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_menu (code, label, route, type, parent, remark)
+        VALUES (#{code}, #{label}, #{route}, #{type}, #{parent}, #{remark})
+    </insert>
+
+    <update id="update">
+        UPDATE tb_menu
+        SET label = #{label}, route = #{route}, type = #{type}, parent = #{parent}, remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tb_menu WHERE id = #{id}
+    </delete>
+
+    <select id="selectChildren" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_menu WHERE parent = #{parent} ORDER BY id
+    </select>
+
+    <select id="selectAll" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_menu ORDER BY id
+    </select>
+</mapper>

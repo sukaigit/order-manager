@@ -9,7 +9,8 @@
       <button class="btn btn-primary" @click="query">查询</button>
       <button class="btn btn-secondary" @click="resetQuery">重置</button>
     </div>
-    <table class="data-table">
+    <div v-if="loading" style="text-align:center;padding:40px;color:var(--color-text-muted)">加载中...</div>
+    <table class="data-table" v-else>
       <tr><th>操作人</th><th>操作类型</th><th>操作目标</th><th>IP</th><th>时间</th></tr>
       <tr v-for="l in pagedList" :key="l.id"><td>{{ l.user }}</td><td>{{ l.action }}</td><td>{{ l.target }}</td><td>{{ l.ip }}</td><td>{{ l.time }}</td></tr>
     </table>
@@ -21,7 +22,7 @@
           <option :value="20">20条/页</option>
           <option :value="50">50条/页</option>
         </select>
-        <span>显示第 {{ (page-1)*pageSize+1 }}-{{ Math.min(page*pageSize, logs.length) }}条，共 {{ logs.length }} 条</span>
+        <span>显示第 {{ (page-1)*pageSize+1 }}-{{ Math.min(page*pageSize, filteredList.length) }}条，共 {{ filteredList.length }} 条</span>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <button class="page-btn" :disabled="page<=1" @click="page=Math.max(1,page-1)">上一页</button>
@@ -35,23 +36,15 @@
   </div>
 </template>
 <script>
+import api from '../utils/api'
 export default {
   data: () => ({
+    loading: false,
     page: 1, pageSize: 5,
     fUser:'', fAction:'', fTarget:'', fIP:'', fDate:'',
-    logs: [
-      {id:1,user:'admin',action:'登录',target:'系统',ip:'192.168.1.10',time:'2024-01-01 10:00:00'},
-      {id:2,user:'admin',action:'新增供应商',target:'供应商001',ip:'192.168.1.20',time:'2024-01-02 10:05:00'},
-      {id:3,user:'admin',action:'审核订单',target:'ORD-2024-0001',ip:'192.168.1.30',time:'2024-01-03 10:10:00'},
-      {id:4,user:'admin',action:'导出报表',target:'订单报表',ip:'192.168.1.40',time:'2024-01-04 10:15:00'},
-      {id:5,user:'admin',action:'修改密码',target:'用户admin',ip:'192.168.1.50',time:'2024-01-05 10:20:00'},
-      {id:6,user:'admin',action:'新增用户',target:'用户002',ip:'192.168.1.60',time:'2024-01-06 10:25:00'},
-      {id:7,user:'admin',action:'删除供应商',target:'供应商003',ip:'192.168.1.70',time:'2024-01-07 10:30:00'},
-      {id:8,user:'admin',action:'编辑订单',target:'ORD-2024-0004',ip:'192.168.1.80',time:'2024-01-08 10:35:00'},
-      {id:9,user:'admin',action:'查看报表',target:'月度报表',ip:'192.168.1.90',time:'2024-01-09 10:40:00'},
-      {id:10,user:'admin',action:'系统配置',target:'日志配置',ip:'192.168.1.100',time:'2024-01-10 10:45:00'},
-    ]
+    logs: []
   }),
+  mounted() { this.loadData() },
   computed: {
     totalPages() { return Math.ceil(this.filteredList.length / this.pageSize) || 1 },
     filteredList() {
@@ -81,6 +74,17 @@ export default {
     }
   },
   methods: {
+    async loadData() {
+      this.loading = true
+      try {
+        const res = await api.get('/logs')
+        this.logs = (res.data?.list || res.data || res || [])
+      } catch (e) {
+        this.$emit('toast',{msg:'加载日志失败: ' + (e.message || ''),type:'error'})
+      } finally {
+        this.loading = false
+      }
+    },
     query() { this.page = 1 },
     resetQuery() { this.fUser=''; this.fAction=''; this.fTarget=''; this.fIP=''; this.fDate=''; this.page = 1 },
   }

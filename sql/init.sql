@@ -2,9 +2,6 @@
 CREATE DATABASE IF NOT EXISTS order_manager DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE order_manager;
 
-CREATE USER IF NOT EXISTS 'order_mgr'@'localhost' IDENTIFIED BY 'Uu888888!';
-GRANT SELECT, INSERT, UPDATE, DELETE ON order_manager.* TO 'order_mgr'@'localhost';
-FLUSH PRIVILEGES;
 
 -- ========== 系统管理表 ==========
 
@@ -122,7 +119,7 @@ CREATE TABLE tb_order (
     type        VARCHAR(20)   NOT NULL COMMENT '订单类型',
     partner_id  BIGINT        NOT NULL COMMENT '合作方ID',
     amount      DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '订单金额',
-    status      VARCHAR(10)   NOT NULL DEFAULT '待审核' COMMENT '状态',
+    status      VARCHAR(10)   NOT NULL DEFAULT 'pending' COMMENT '状态',
     order_time  DATETIME      NOT NULL COMMENT '订单时间',
     remark      VARCHAR(500)  DEFAULT '' COMMENT '备注',
     create_time DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,

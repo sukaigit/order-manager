@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ordermanager.mapper.RoleMapper">
+
+    <resultMap id="BaseMap" type="Role">
+        <id column="id" property="id"/>
+        <result column="code" property="code"/>
+        <result column="name" property="name"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="BaseColumns">id, code, name, remark, create_time</sql>
+
+    <sql id="WhereClause">
+        <where>
+            <if test="code != null and code != ''">AND code LIKE CONCAT('%', #{code}, '%')</if>
+            <if test="name != null and name != ''">AND name LIKE CONCAT('%', #{name}, '%')</if>
+        </where>
+    </sql>
+
+    <select id="selectList" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_role
+        <include refid="WhereClause"/>
+        ORDER BY id DESC LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectCount" resultType="long">
+        SELECT COUNT(*) FROM tb_role
+        <include refid="WhereClause"/>
+    </select>
+
+    <select id="selectById" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_role WHERE id = #{id}
+    </select>
+
+    <select id="selectByCode" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_role WHERE code = #{code}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_role (code, name, remark) VALUES (#{code}, #{name}, #{remark})
+    </insert>
+
+    <update id="update">
+        UPDATE tb_role SET name = #{name}, remark = #{remark} WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tb_role WHERE id = #{id}
+    </delete>
+
+    <select id="selectAll" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_role ORDER BY id
+    </select>
+</mapper>

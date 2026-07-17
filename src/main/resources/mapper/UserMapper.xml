@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ordermanager.mapper.UserMapper">
+
+    <resultMap id="BaseMap" type="User">
+        <id column="id" property="id"/>
+        <result column="code" property="code"/>
+        <result column="name" property="name"/>
+        <result column="password" property="password"/>
+        <result column="role" property="role"/>
+        <result column="dept" property="dept"/>
+        <result column="org" property="org"/>
+        <result column="active" property="active"/>
+        <result column="locked" property="locked"/>
+        <result column="first_login" property="firstLogin"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        id, code, name, password, role, dept, org, active, locked, first_login, remark, create_time
+    </sql>
+
+    <sql id="WhereClause">
+        <where>
+            <if test="code != null and code != ''">AND code LIKE CONCAT('%', #{code}, '%')</if>
+            <if test="name != null and name != ''">AND name LIKE CONCAT('%', #{name}, '%')</if>
+            <if test="role != null and role != ''">AND role = #{role}</if>
+            <if test="dept != null and dept != ''">AND dept = #{dept}</if>
+            <if test="org != null and org != ''">AND org = #{org}</if>
+            <if test="active != null">AND active = #{active}</if>
+        </where>
+    </sql>
+
+    <select id="selectList" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_user
+        <include refid="WhereClause"/>
+        ORDER BY id DESC LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectCount" resultType="long">
+        SELECT COUNT(*) FROM tb_user
+        <include refid="WhereClause"/>
+    </select>
+
+    <select id="selectById" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_user WHERE id = #{id}
+    </select>
+
+    <select id="selectByName" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_user WHERE name = #{name}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tb_user (code, name, password, role, dept, org, active, locked, first_login, remark)
+        VALUES (#{code}, #{name}, #{password}, #{role}, #{dept}, #{org}, #{active}, #{locked}, #{firstLogin}, #{remark})
+    </insert>
+
+    <update id="update">
+        UPDATE tb_user
+        SET name = #{name}, role = #{role}, dept = #{dept}, org = #{org},
+            active = #{active}, remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tb_user WHERE id = #{id}
+    </delete>
+
+    <update id="updateLocked">
+        UPDATE tb_user SET locked = #{locked} WHERE id = #{id}
+    </update>
+
+    <update id="updatePassword">
+        UPDATE tb_user SET password = #{password} WHERE id = #{id}
+    </update>
+
+    <update id="updateFirstLogin">
+        UPDATE tb_user SET first_login = #{firstLogin} WHERE id = #{id}
+    </update>
+
+    <select id="selectAll" resultMap="BaseMap">
+        SELECT <include refid="BaseColumns"/> FROM tb_user ORDER BY id
+    </select>
+</mapper>
