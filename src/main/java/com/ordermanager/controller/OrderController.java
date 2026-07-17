@@ -46,6 +46,9 @@ public class OrderController {
 
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id, @RequestBody Order order) {
+        Order existing = orderService.getById(id);
+        if (existing == null) return Result.badRequest("订单不存在");
+        if (!"待审核".equals(existing.getStatus())) return Result.badRequest("仅待审核订单可修改");
         order.setId(id);
         orderService.update(order);
         return Result.success();

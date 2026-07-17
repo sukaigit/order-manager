@@ -32,7 +32,12 @@ public class OrderService {
     }
 
     public int create(Order order) {
+        // Auto-generate order code
+        long count = orderMapper.selectTotalOrders() + 1;
+        String date = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+        order.setCode(String.format("ORD-%s-%03d", date, count));
         order.setStatus("待审核");
+        order.setOrderTime(LocalDateTime.now());
         order.setCreateTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
         return orderMapper.insert(order);
