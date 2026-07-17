@@ -6,7 +6,7 @@
 ## Requirements
 
 ### REQ-PARTNER-001: 字段定义
-The system SHALL support the following fields: 合作方编号 (自动生成 XX-{NNN}), 合作方名称 (唯一必填), 联系人 (必填), 联系电话 (11位手机号), 备注 (可选).
+The system SHALL support the following fields: 合作方编号 (自动生成 PARTNER-{NNN}), 合作方名称 (唯一必填), 联系人 (必填), 联系电话 (11位手机号), 备注 (可选).
 
 ### REQ-PARTNER-002: 新增合作方
 The system SHALL allow creating partners with fields: 合作方名称, 联系人, 联系电话, 备注.
