@@ -166,3 +166,48 @@ INSERT INTO tb_partner (code, name, contact, phone) VALUES
 ('PARTNER-006', '合作方F', '周八', '13800138006'),
 ('PARTNER-007', '合作方G', '吴九', '13800138007'),
 ('PARTNER-008', '合作方H', '郑十', '13800138008');
+
+-- 机构（5级树形）
+INSERT INTO tb_organization (code, name, short_name, level, parent_id, contact, phone, region, address) VALUES
+('HQ', '威高集团', '集团', 1, NULL, '王总', '021-88888888', '上海市', '上海市浦东新区'),
+('SH_BRANCH', '上海分公司', '上海分', 2, 1, '李总', '021-88888881', '上海市', '上海市浦东新区'),
+('SH_SUB', '上海二级分行', '上二分', 3, 2, '刘总', '021-88888882', '上海市', '上海市浦东新区'),
+('SH_ORG1', '上海一级支行', '上支行', 4, 3, '陈行', '021-88888883', '上海市', '上海市浦东新区'),
+('SH_SUBORG1', '上海二级支行', '上二支', 5, 4, '周主', '021-88888884', '上海市', '上海市浦东新区');
+
+-- 菜单（二级）
+INSERT INTO tb_menu (code, label, path, level) VALUES
+('MENU_DASHBOARD', '首页', '/dashboard', 1),
+('MENU_ORDERS', '订单管理', '/orders', 1),
+('MENU_PARTNERS', '合作方管理', '/partners', 1),
+('MENU_REPORTS', '报表统计', NULL, 1),
+('MENU_SYS', '系统管理', NULL, 1);
+INSERT INTO tb_menu (code, label, path, level, parent_id) VALUES
+('MENU_REPORT_TYPE', '订单类型统计', '/reports/type', 2, 4),
+('MENU_REPORT_PARTNER', '合作方统计', '/reports/partner', 2, 4),
+('MENU_REPORT_STATUS', '订单状态统计', '/reports/status', 2, 4),
+('MENU_USER', '用户管理', '/users', 2, 5),
+('MENU_ROLE', '角色管理', '/roles', 2, 5),
+('MENU_DEPT', '部门管理', '/departments', 2, 5),
+('MENU_ORG', '机构管理', '/organizations', 2, 5),
+('MENU_MENU', '菜单管理', '/menus', 2, 5),
+('MENU_FUNC', '功能管理', '/functions', 2, 5),
+('MENU_LOG', '操作日志', '/logs', 2, 5);
+
+-- 功能权限
+INSERT INTO tb_function (code, name, menu_id, perm) VALUES
+('FUNC_DASHBOARD', '查看首页', 1, 'dashboard:view'),
+('FUNC_ORDER_VIEW', '查看订单', 2, 'order:view'),
+('FUNC_ORDER_ADD', '新增订单', 2, 'order:add'),
+('FUNC_ORDER_EDIT', '编辑订单', 2, 'order:edit'),
+('FUNC_ORDER_DELETE', '删除订单', 2, 'order:delete'),
+('FUNC_PARTNER_VIEW', '查看合作方', 3, 'partner:view'),
+('FUNC_PARTNER_ADD', '新增合作方', 3, 'partner:add'),
+('FUNC_PARTNER_EDIT', '编辑合作方', 3, 'partner:edit'),
+('FUNC_PARTNER_DELETE', '删除合作方', 3, 'partner:delete'),
+('FUNC_USER_VIEW', '查看用户', 9, 'user:view'),
+('FUNC_USER_ADD', '新增用户', 9, 'user:add'),
+('FUNC_USER_EDIT', '编辑用户', 9, 'user:edit'),
+('FUNC_USER_DELETE', '删除用户', 9, 'user:delete'),
+('FUNC_ROLE_VIEW', '查看角色', 10, 'role:view'),
+('FUNC_SYS_ADMIN', '系统管理', 5, 'sys:admin');

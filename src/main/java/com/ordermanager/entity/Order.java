@@ -1,14 +1,20 @@
 package com.ordermanager.entity;
-
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class Order {
     private Long id;
     private String code;
+    @NotBlank(message = "订单名称不能为空")
     private String name;
     private String type;
     private Long partnerId;
+    @NotNull(message = "金额不能为空")
+    @Min(value = 0, message = "金额不能为负")
     private BigDecimal amount;
     private String status;
     private LocalDateTime orderTime;

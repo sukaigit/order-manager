@@ -1,12 +1,17 @@
 package com.ordermanager.entity;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import java.time.LocalDateTime;
 
 public class Partner {
     private Long id;
     private String code;
+    @NotBlank(message = "合作方名称不能为空")
     private String name;
+    @NotBlank(message = "联系人不能为空")
     private String contact;
+    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String phone;
     private String remark;
     private LocalDateTime createTime;

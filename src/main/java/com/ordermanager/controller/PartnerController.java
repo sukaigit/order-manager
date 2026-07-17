@@ -5,6 +5,7 @@ import com.ordermanager.common.Result;
 import com.ordermanager.entity.Partner;
 import com.ordermanager.service.PartnerService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -38,7 +39,7 @@ public class PartnerController {
     }
 
     @PostMapping
-    public Result<Void> create(@RequestBody Partner partner) {
+    public Result<Void> create(@Valid @RequestBody Partner partner) {
         partnerService.create(partner);
         return Result.success();
     }

@@ -5,6 +5,7 @@ import com.ordermanager.common.Result;
 import com.ordermanager.entity.Order;
 import com.ordermanager.service.OrderService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -39,7 +40,7 @@ public class OrderController {
     }
 
     @PostMapping
-    public Result<Void> create(@RequestBody Order order) {
+    public Result<Void> create(@Valid @RequestBody Order order) {
         orderService.create(order);
         return Result.success();
     }
