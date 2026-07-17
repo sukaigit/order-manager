@@ -28,7 +28,7 @@
 | 4 | **API 路径不一致** — 子代理用了 `api.get('/api/orders')` 但 baseURL 已是 `/api`，导致双 `/api` | 子代理模板应明确 baseURL 配置，避免路径重复 | ☐ 回流 / ☐ 不留 |
 | 5 | **git stash 冲突破坏代码** — 从 feat 切 master 再切回时，stash pop 导致 13 个 Vue 文件出现冲突标记和重复代码段 | 切换分支前先提交/清理，避免 stash 冲突 | ☐ 回流 / ☐ 不留 |
 | 6 | **测试数据未清理干净** — Playwright/API 测试后残留垃圾数据（测试订单/合作方），用户验收时数据不干净 | 流程步骤 4 强调：只保留 init.sql 种子数据，业务数据由用户验收时新增 | ☐ 回流 / ☐ 不留 |
-| 7 | **SVG 自闭合标签编译报错** — Vue SFC 编译器不识别 `<path/>` 等 SVG 自闭合标签，导致 OrderManage 页面崩溃 | 原型模板中避免使用 SVG 路径图标，改用 emoji 或文字 | ☐ 回流 / ☐ 不留 |
+| 7 | **SVG 自闭合标签编译报错** — Vue SFC 编译器不识别 `<path/>` 等 SVG 自闭合写法，需用 `<path></path>` 替代，导致 OrderManage 页面崩溃 | 原型模板中 SVG 标签使用成对闭合而非自闭合 `<tag/>` 写法 | ☐ 回流 / ☐ 不留 |
 | 8 | **报表后端返回双层 data** — `{data:{data:[...]}}` 前端解包不对导致表格空白 | 后端返回 List 而非 Map，或前端加 `res.data.data || res.data` 容错 | ☐ 回流 / ☐ 不留 |
 
 ---
@@ -39,4 +39,4 @@
 2. **每个阶段结束做 router vs spec vs API vs test 覆盖检查**
 3. **切换分支前先 `git stash push -u` + 提交 `start.sh` 等基础设施文件到 git**
 4. **vite.config.js 的 proxy 直接写在模板中**
-5. **SVG 图标统一用 emoji 或纯文字替代，避免 Vue 编译问题**
+5. **模板中 SVG 使用成对闭合 `<path></path>` 而非自闭合 `<path/>`**
