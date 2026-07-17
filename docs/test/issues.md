@@ -13,6 +13,7 @@
 | 首页 | `recentOrders` 后端返回 `partnerId` 和 `orderTime`，前端期望 `partner` 和 `date` | 全栈联调 | `DashboardService` 映射字段并增加 `statusCls` | ✅ 已修复 |
 | 订单管理 | `POST /api/orders` 请求体字段名 `partner` 不匹配后端 `partnerId` | E2E 集成测试 | 前端使用 `partnerId` 参数 | ✅ 已修复 |
 | 报表统计 | 报表筛选中文字段在 curl 测试时编码异常 | E2E 集成测试 | 使用英文标识符测试，前端页面正常 | ✅ 已修复 |
+| 报表统计 | 3个报表页后端返回 `{data:{data:[...]}}` 双层嵌套，前端解包不对导致表格空白 | 用户测试 | 前端改为 `res.data.data || res.data` | ✅ 已修复 |
 
 ## 待改进项（低优先级）
 
