@@ -2,6 +2,5 @@
 
 | 模块 | 描述 | 严重度 | 状态 |
 |:----|:----|:-----:|:----:|
-| 订单管理 | 后端导出API未实现 `/api/orders/export` | 低 | 待迭代 |
-| 合作方管理 | 后端导出API未实现 `/api/partners/export` | 低 | 待迭代 |
-
+| 订单管理 | 后端导出API `/api/orders/export` | — | ✅ 已完成 |
+| 合作方管理 | 后端导出API `/api/partners/export` | — | ✅ 已完成 |

@@ -46,6 +46,14 @@ public class OrderService {
         return orderMapper.deleteById(id);
     }
 
+    public List<Order> exportList(String code, String type, String partner, String status) {
+        Long partnerId = null;
+        if (partner != null && !partner.isEmpty()) {
+            try { partnerId = Long.parseLong(partner); } catch (NumberFormatException ignored) {}
+        }
+        return orderMapper.selectList(code, type, partnerId, status, 0, 99999);
+    }
+
     // Dashboard
     public long getTotalOrders() { return orderMapper.selectTotalOrders(); }
     public BigDecimal getTotalAmount() { return orderMapper.selectTotalAmount(); }

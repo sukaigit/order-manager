@@ -44,9 +44,13 @@ public class PartnerService {
     public int delete(Long id) {
         long orderCount = partnerMapper.selectOrderCount(id);
         if (orderCount > 0) {
-            return -1; // has associated orders
+            return -1;
         }
         return partnerMapper.deleteById(id);
+    }
+
+    public List<Partner> exportList(String code, String name, String contact) {
+        return partnerMapper.selectList(code, name, contact, 0, 99999);
     }
 
     public List<Partner> getAll() {
